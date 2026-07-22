@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.astro/
+coverage/
+playwright-report/
+test-results/
+.turbo/
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/
