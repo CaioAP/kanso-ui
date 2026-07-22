@@ -12,7 +12,9 @@ Reference: https://www.w3.org/WAI/ARIA/apg/patterns/
 
 - Prefer a native element over a role. `<button>` before `role="button"`.
   Native elements bring keyboard, focus and AT behaviour for free.
-- Every root part carries `data-kanso` and `data-part`.
+- The **root part only** carries `data-kanso` and `data-scope="<component>"`.
+  Every part, root included, carries `data-part`. The stylesheet relies on this —
+  see `docs/02` §2.
 - State is exposed as `data-state`, `data-disabled`, `data-invalid` — consumers
   style and animate from these.
 - Every user-facing string is a prop. Core ships no copy.

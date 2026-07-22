@@ -184,7 +184,7 @@ export const switchIds = (id: string) => ({
 
 Adapters source the base id from the framework:
 
-- **React 19** — `useId()`
+- **React** — `useId()` (available since React 18)
 - **Vue 3.5+** — `useId()` (requires an app-level id prefix for SSR; document it)
 
 Both are SSR-stable by design. A `id` prop always overrides, for consumers who need
@@ -302,6 +302,10 @@ export function connectSwitch<T extends PropTypes>(
     setChecked: (value: boolean) => send({ type: 'SET_CHECKED', value }),
 
     rootProps: normalize.element({
+      // Root-only marker. The stylesheet scopes itself with `[data-kanso] [data-part=…]`,
+      // so this must be present on the root and absent everywhere else.
+      'data-kanso': '',
+      'data-scope': 'switch',
       'data-part': 'root',
       'data-state': checked ? 'checked' : 'unchecked',
       'data-disabled': dataAttr(disabled),

@@ -34,10 +34,22 @@ import '@caioalfonso/kanso-styles/switch'   // one component
 The stylesheet targets **only** the data attributes core emits. No class names, ever.
 
 ```css
-[data-kanso][data-part='control'] { ... }
-[data-kanso][data-part='control'][data-state='checked'] { ... }
-[data-kanso][data-part='control'][data-disabled] { ... }
+[data-kanso] [data-part='control'] { ... }
+[data-kanso] [data-part='control'][data-state='checked'] { ... }
+[data-kanso] [data-part='control'][data-disabled] { ... }
 ```
+
+**The selector shape is a contract — get it right once.** `data-kanso` is emitted
+on the **root part only** (see `docs/01` §8). Every other part carries `data-part`
+alone. So component rules are **descendant** selectors — `[data-kanso] [data-part]`,
+with a space — never compound `[data-kanso][data-part]`, which would require both
+attributes on the same element and match nothing.
+
+Rules that style the root itself are the one exception, and use the compound form
+deliberately: `[data-kanso][data-part='root']`.
+
+Where two components could both own a part name, disambiguate with the
+`data-scope` the root also carries: `[data-kanso][data-scope='switch'] [data-part='control']`.
 
 Why this contract matters:
 
@@ -160,7 +172,8 @@ packages.
 most often get wrong.
 
 ```css
-[data-kanso]:focus-visible {
+[data-kanso] [data-part]:focus-visible,
+[data-kanso][data-part='root']:focus-visible {
   outline: var(--kanso-focus-ring) solid var(--kanso-focus-color);
   outline-offset: var(--kanso-focus-ring-offset);
 }
@@ -185,7 +198,8 @@ legible.
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  [data-kanso] { transition: none !important; animation: none !important; }
+  [data-kanso],
+  [data-kanso] * { transition: none !important; animation: none !important; }
 }
 ```
 
