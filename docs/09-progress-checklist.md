@@ -14,7 +14,7 @@ No code exists yet.
 ## Phase 0 — Foundations
 
 ### Workspace
-- [ ] pnpm workspace, Node 22 + pnpm pinned via `packageManager`
+- [ ] pnpm workspace, Node 24 + pnpm 10 pinned via `packageManager`
 - [ ] `packages/core` skeleton
 - [ ] `packages/vue` skeleton
 - [ ] `packages/react` skeleton

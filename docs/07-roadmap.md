@@ -36,7 +36,7 @@ are additive. Cut from the end, never leave the middle unfinished.
 
 Rails only. Nothing user-visible.
 
-- [ ] `pnpm init`, `pnpm-workspace.yaml`, pin Node 22 + pnpm via `packageManager`
+- [ ] `pnpm init`, `pnpm-workspace.yaml`, pin Node 24 + pnpm 10 via `packageManager`
 - [ ] Four package skeletons: `core`, `vue`, `react`, `styles` — correct
       `package.json`, `exports`, `peerDependencies`, `publishConfig.access: public`
 - [ ] Root `tsconfig` + per-package configs, strict, project references

@@ -155,7 +155,7 @@ Run all three. This invariant is the whole thesis; protect it accordingly.
 `.github/workflows/ci.yml`, on push and PR:
 
 ```
-setup (pnpm, node 22, cache)
+setup (pnpm, node 24, cache)
   → lint         biome check .
   → typecheck    tsc --build
   → core-purity  the grep above
@@ -252,5 +252,5 @@ uploads `dist/`.
 - **`.gitignore`:** `node_modules`, `dist`, `.astro`, `coverage`,
   `playwright-report`, `test-results`, `.env*`.
 - **`LICENSE`:** MIT.
-- **`.nvmrc` / `packageManager` field:** pin Node 22 and the pnpm version so CI and
+- **`.nvmrc` / `packageManager` field:** pin Node 24 and the pnpm version so CI and
   local agree.
