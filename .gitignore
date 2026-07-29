@@ -12,6 +12,9 @@ test-results/
 .env.*
 !.env.example
 
+.claude/settings.local.json
+.claude/*.tmp.*
+
 .DS_Store
 *.log
 .vscode/*
