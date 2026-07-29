@@ -1,0 +1,42 @@
+{
+  "name": "kanso-ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless, accessible components for Vue 3 and React 19, built on one framework-agnostic core.",
+  "license": "MIT",
+  "author": "Caio Alfonso",
+  "packageManager": "pnpm@10.30.3",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/*\" build",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "vitest run",
+    "test:a11y": "vitest run --project vue --project react",
+    "core-purity": "node scripts/core-purity.mjs",
+    "contrast": "node scripts/contrast.mjs",
+    "package-lint": "pnpm -r --filter \"./packages/*\" package-lint",
+    "changeset": "changeset",
+    "release": "pnpm build && changeset publish"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
+    "@biomejs/biome": "^2.5.3",
+    "@changesets/cli": "^2.29.8",
+    "@types/node": "^24.10.1",
+    "jsdom": "^28.0.1",
+    "publint": "^0.3.16",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

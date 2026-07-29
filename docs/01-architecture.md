@@ -115,7 +115,7 @@ Core emits a neutral prop bag:
   'aria-checked': true,
   class: undefined,
   onClick: handler,
-  onKeydown: handler,
+  onKeyDown: handler,
 }
 ```
 
@@ -126,38 +126,53 @@ wrong **fails silently** — the attribute simply never reaches the DOM.
 |---|---|---|
 | `class` | `className` | `class` |
 | `for` | `htmlFor` | `for` |
-| `onKeydown` | `onKeyDown` | `onKeydown` |
-| `onFocus` / `onBlur` | same | same |
+| `onKeyDown` | same | `onkeydown` |
+| `onClick` | same | `onclick` |
 | `style` (object) | object | object |
 | `defaultValue` | same | n/a — Vue uses `value` |
 
-React implementation is close to a rename map plus event-name camel-casing:
+**The neutral event form is React's camelCase**, and the asymmetry is forced,
+not arbitrary. `keydown` → `KeyDown` needs a word list — no rule derives the
+capital `D`. `KeyDown` → `keydown` is one `toLowerCase()`. So core emits the
+form that can be mechanically converted, and Vue carries the conversion.
+
+React is then just a rename map:
 
 ```ts
 // packages/react/src/normalize-props.ts
-const propMap: Dict = { class: 'className', for: 'htmlFor' }
+const propMap: Record<string, string> = { class: 'className', for: 'htmlFor' }
 
-export const normalizeProps = createNormalizer<ReactPropTypes>((props) => {
+export const normalizeProps = createNormalizer<ReactPropTypes>((props: Dict) => {
   const out: Dict = {}
   for (const key in props) {
     const value = props[key]
     if (value === undefined) continue
-    // onKeydown -> onKeyDown ; onPointerdown -> onPointerDown
-    if (key.startsWith('on') && key.length > 2) {
-      out[`on${key[2].toUpperCase()}${key.slice(3)}`] = value
-      continue
-    }
     out[propMap[key] ?? key] = value
   }
   return out
 })
 ```
 
-Vue is nearly identity — Vue 3 accepts `onClick` in a `v-bind` object — but must
-**not** camel-case DOM attribute names, and keeps `class` / `for` as-is.
+Vue keeps `class` / `for` as written, drops `undefined` so its emitted attribute
+set matches React's exactly, and lowercases handler names:
 
-> Write `normalizeProps` once in Phase 1 and test it directly. Every component
-> depends on it, so a bug here is a bug everywhere.
+```ts
+// packages/vue/src/normalize-props.ts — the event branch
+if (key.startsWith('on') && key.length > 2 && !key.includes(':')) {
+  out[`on${key.slice(2).toLowerCase()}`] = value
+  continue
+}
+```
+
+The lowercasing is load-bearing. Vue derives the DOM event name by running the
+part after `on` through `hyphenate`, so `onKeyDown` binds a listener for
+`key-down` — an event no browser fires, with no warning anywhere. `onUpdate:modelValue`
+is exempted: the colon marks it a component event, and lowercasing breaks `v-model`.
+
+> Write `normalizeProps` once in Phase 0 and test it directly, including an
+> assertion that the props actually land on a rendered element. Every component
+> depends on it, so a bug here is a bug everywhere — and both failure modes are
+> silent.
 
 ## 5. IDs — the SSR trap
 

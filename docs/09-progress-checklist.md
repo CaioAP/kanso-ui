@@ -3,58 +3,143 @@
 Living status doc. **Update it as items land** — it is the fastest way for a new
 session to learn where things stand.
 
-**Status: Phase 0 not started.** The repository contains planning documents only.
-No code exists yet.
+**Status: Phase 0 rails built, not yet signed off.** Every gate passes locally,
+including `pnpm install --frozen-lockfile`. Two definition-of-done items are
+still open: **CI has never run** (the workflow files are unverified until a push
+proves them), and the docs site is not deployed. No components exist yet — that
+is Phase 1.
 
 **Repo:** `/home/caio/Projects/kanso-ui` · **npm scope:** `@caioalfonso` (unconfirmed)
-**Docs site:** not deployed · **GitHub:** not created
+**Docs site:** builds locally, not deployed · **GitHub:** `github.com/CaioAP/kanso-ui`
+
+**Toolchain as installed:** Node 24.14.0 · pnpm 10.30.3 · TypeScript 5.9.3 ·
+Vitest 3.2.7 · Biome 2.5.6 · tsup 8.5.1 · Astro 7.1.5 · Starlight 0.41.5
 
 ---
 
 ## Phase 0 — Foundations
 
 ### Workspace
-- [ ] pnpm workspace, Node 24 + pnpm 10 pinned via `packageManager`
-- [ ] `packages/core` skeleton
-- [ ] `packages/vue` skeleton
-- [ ] `packages/react` skeleton
-- [ ] `packages/styles` skeleton
-- [ ] `exports` maps, `peerDependencies`, `publishConfig.access: public`
-- [ ] TypeScript strict, project references
-- [ ] Biome config
-- [ ] tsup config per package
-- [ ] Vitest workspace, one project per package
-- [ ] Testing Library (Vue + React) + `vitest-axe`
-- [ ] changesets initialised
+- [x] pnpm workspace, Node 24 + pnpm 10 pinned via `packageManager`
+- [x] `packages/core` skeleton
+- [x] `packages/vue` skeleton
+- [x] `packages/react` skeleton
+- [x] `packages/styles` skeleton
+- [x] `exports` maps, `peerDependencies`, `publishConfig.access: public`
+- [x] TypeScript strict — one flat program with `paths`, not project references
+      (rationale in `docs/05` §2)
+- [x] Biome config
+- [x] tsup config per package (`styles` copies CSS instead — no bundler)
+- [x] Vitest `test.projects`, one project per package
+- [x] Testing Library (Vue + React) + `vitest-axe`
+- [x] changesets initialised, `fixed` for lockstep versioning
 
 ### CI/CD
-- [ ] `ci.yml` — lint, typecheck, core-purity, test, build, package-lint, docs build
-- [ ] `release.yml` — changesets publish
-- [ ] Core-purity check verified to actually fail on a planted violation
+- [x] `ci.yml` written — lint, typecheck, core-purity, contrast, test, build,
+      core-purity again over `dist`, package-lint, docs build
+- [x] `release.yml` written — changesets publish
+- [ ] **CI observed green on a real run.** Both workflow files are unexecuted:
+      no action version, no `node-version-file: .nvmrc` parse, no
+      `changesets/action` block has run once. Push, then tick this.
+- [x] **Core-purity check verified to actually fail on a planted violation** —
+      probe used a type-only `import type ... from 'vue'`, a bare `import 'react'`
+      and a dynamic `import('react-dom')`; all three were caught, exit 1
+- [x] Contrast check likewise verified against a planted regression, exit 1, and
+      against a planted disagreement between the two dark blocks
 
 ### Foundational code
-- [ ] `core/src/types.ts` — `PropTypes`, `NormalizeProps`, `Dict`
-- [ ] `core/src/dom/attrs.ts` — `dataAttr`, `ariaAttr`
-- [ ] `normalizeProps` (React) + unit tests
-- [ ] `normalizeProps` (Vue) + unit tests
+- [x] `core/src/types.ts` — `PropTypes`, `NormalizeProps`, `Dict`
+- [x] `core/src/normalize.ts` — `createNormalizer`
+- [x] `core/src/dom/attrs.ts` — `dataAttr`, `ariaAttr`
+- [x] `normalizeProps` (React) + unit tests
+- [x] `normalizeProps` (Vue) + unit tests
+- 21 tests passing across 4 projects.
+
+**One spec correction landed here.** `docs/01` §4 defined the neutral event form
+as `onKeydown` and claimed the React adapter camel-cased it — but its own snippet
+uppercased an already-uppercase character, so the transform was a no-op, and
+`keydown → KeyDown` is not derivable by rule anyway. Vue meanwhile needs the
+*lowercase* form, because it hyphenates the tail and `onKeyDown` binds a
+listener for a `key-down` event that never fires. Resolved by making the neutral
+form React's camelCase and having Vue lowercase it. `docs/01` §4 updated.
 
 ### Design tokens
-- [ ] **Contrast-verify every token pair in `docs/02` §3 and correct the values**
-- [ ] Record measured ratios below (replace this line when done):
+- [x] **Contrast-verified every token pair and corrected the values**
+- [x] `pnpm contrast` added as a repeatable CI gate — it parses `tokens.css`
+      rather than duplicating the values, and self-checks its OKLCh → sRGB
+      converter against known anchors before reporting
 
-  | Pair | Ratio | Required | Pass |
-  |---|---|---|---|
-  | _not yet measured_ | | | |
+Measured with `scripts/contrast.mjs` (OKLCh → sRGB → 8-bit → WCAG luminance).
+
+**Light**
+
+| Pair | Ratio | Required | Pass |
+|---|---|---|---|
+| `fg` / `bg` | 16.82:1 | 4.5 | ✅ |
+| `fg` / `surface` | 15.85:1 | 4.5 | ✅ |
+| `fg-muted` / `bg` | 7.26:1 | 4.5 | ✅ |
+| `fg-muted` / `surface` | 6.84:1 | 4.5 | ✅ |
+| `fg-faint` / `bg` | 3.84:1 | 3.0 (large text only) | ✅ |
+| `on-accent` / `accent` | 5.42:1 | 4.5 | ✅ |
+| `on-accent` / `accent-hover` | 7.03:1 | 4.5 | ✅ |
+| `on-danger` / `danger` | 5.85:1 | 4.5 | ✅ |
+| `accent` / `bg` | 5.42:1 | 3.0 (SC 1.4.11) | ✅ |
+| `accent` / `surface` | 5.11:1 | 3.0 | ✅ |
+| `danger` / `bg` | 5.87:1 | 3.0 | ✅ |
+| `line-strong` / `bg` | 3.27:1 | 3.0 | ✅ |
+| `line-strong` / `surface` | 3.09:1 | 3.0 | ✅ |
+
+**Dark**
+
+| Pair | Ratio | Required | Pass |
+|---|---|---|---|
+| `fg` / `bg` | 15.28:1 | 4.5 | ✅ |
+| `fg` / `surface` | 14.45:1 | 4.5 | ✅ |
+| `fg-muted` / `bg` | 7.52:1 | 4.5 | ✅ |
+| `fg-muted` / `surface` | 7.12:1 | 4.5 | ✅ |
+| `fg-faint` / `bg` | 4.37:1 | 3.0 (large text only) | ✅ |
+| `on-accent` / `accent` | 7.27:1 | 4.5 | ✅ |
+| `on-accent` / `accent-hover` | 9.06:1 | 4.5 | ✅ |
+| `on-danger` / `danger` | 6.26:1 | 4.5 | ✅ |
+| `accent` / `bg` | 7.02:1 | 3.0 (SC 1.4.11) | ✅ |
+| `accent` / `surface` | 6.64:1 | 3.0 | ✅ |
+| `danger` / `bg` | 6.05:1 | 3.0 | ✅ |
+| `line-strong` / `bg` | 3.26:1 | 3.0 | ✅ |
+| `line-strong` / `surface` | 3.09:1 | 3.0 | ✅ |
+
+**Correction made:** `--kanso-line-strong` was 78% (light) / 42% (dark), giving
+1.95:1 and 2.22:1 — both below the 3:1 a border needs when it indicates state.
+Now 64% / 51%. `--kanso-line` stays decorative and deliberately below 3:1; see
+`docs/02` §3 for the rule separating the two.
+
+`fg-faint` clears 3:1 but not 4.5:1 in either theme. That is intended — it is a
+large-text-only token, and the docs must say so rather than letting someone set
+body copy in it.
+
+**`surface-sunk` is defined but not yet in any measured pair**, because no
+component uses it. A switch track or an input background is exactly where it
+will land; add the pair to `scripts/contrast.mjs` in the same commit that first
+uses the token.
+
+The dark palette is written twice in `tokens.css` — once under
+`prefers-color-scheme`, once under `[data-theme='dark']` — because plain CSS
+cannot share a block across a media query. `pnpm contrast` asserts the two copies
+are identical, so the duplication cannot silently diverge.
 
 ### Docs site
-- [ ] Starlight scaffolded with `@astrojs/vue` **and** `@astrojs/react`
+- [x] Starlight scaffolded with `@astrojs/vue` **and** `@astrojs/react`
+- [x] Both islands verified to build and hydrate on one page
+      (`/embed/islands`, a Phase 0 scaffold check replaced in Phase 1)
 - [ ] Deployed to Cloudflare Pages (Pages flow, no adapter)
 
 ### Human tasks (block Phase 1 publish)
 - [ ] `npm adduser`, 2FA on, **confirm the `@caioalfonso` scope is available**
 - [ ] npm automation token → `NPM_TOKEN` GitHub secret
-- [ ] GitHub repo created, pushed, `main` protected
+- [x] GitHub repo created and pushed — `github.com/CaioAP/kanso-ui`
+- [ ] `main` protected, CI required to merge
 - [ ] Cloudflare Pages project created (**Pages**, not Workers)
+      — build command `pnpm install && pnpm build && pnpm --filter docs build`,
+      output directory `docs/dist`
 
 ---
 
@@ -141,6 +226,16 @@ No code exists yet.
 
 ## Open questions / decisions pending
 - [ ] npm scope `@caioalfonso` availability — unverified, confirm at `npm adduser`
+- [ ] `docs/01` §8 and `docs/03` §1 disagree on Switch: §8's `connect` has no
+      hidden `<input type="checkbox">`, but §1 requires one for form
+      participation, and `switchAnatomy` lists only `root · control · thumb ·
+      label`. Resolve at the top of Phase 1 — likely a `hiddenInput` part.
+- [ ] `vitest-axe` has no stable release; pinned to `1.0.0-pre.5`, which is what
+      works with Vitest 3. If it goes stale, `jest-axe` is the fallback
+      (`docs/04` §5 already permits it).
+- [ ] All four packages ship `files: ["dist"]`, so no README and no LICENSE land
+      in the tarball and the npm page would be blank. Fix before Phase 1's
+      `0.0.1` publish — a per-package README is the npm landing page.
 - [ ] Docs site domain — `kanso-ui.pages.dev` by default, custom domain undecided
 - [ ] Whether `ComponentPreview` reflects live knob state in the shown source, or
       shows a static example (decide when building it in Phase 1)

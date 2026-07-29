@@ -1,0 +1,30 @@
+{
+  "name": "docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/react": "^6.0.2",
+    "@astrojs/starlight": "^0.41.5",
+    "@astrojs/vue": "^7.0.1",
+    "@caioalfonso/kanso-core": "workspace:^",
+    "@caioalfonso/kanso-react": "workspace:^",
+    "@caioalfonso/kanso-styles": "workspace:^",
+    "@caioalfonso/kanso-vue": "workspace:^",
+    "astro": "^7.1.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "sharp": "^0.35.3",
+    "vue": "^3.5.40"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3"
+  }
+}

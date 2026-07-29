@@ -1,0 +1,26 @@
+---
+// Phase 0 scaffold check, not a docs page. Mounting a Vue island and a React
+// island on one page is the arrangement every component page will use, and the
+// failure mode — one integration missing — surfaces as a cryptic build error.
+// Proving it here means Phase 1 never has to debug it.
+//
+// Replaced by the real ComponentPreview in Phase 1.
+import { SmokeReact } from '../../components/SmokeReact';
+import SmokeVue from '../../components/SmokeVue.vue';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Island smoke check</title>
+  </head>
+  <body>
+    <main>
+      <h1>Island smoke check</h1>
+      <SmokeVue client:load />
+      <SmokeReact client:load />
+    </main>
+  </body>
+</html>

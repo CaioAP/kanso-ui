@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Every gate runs even when an earlier one fails, so a single run surfaces
+      # every problem rather than one problem at a time.
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: pnpm typecheck
+
+      - name: Core purity (source)
+        if: ${{ !cancelled() }}
+        run: pnpm core-purity
+
+      - name: Token contrast
+        if: ${{ !cancelled() }}
+        run: pnpm contrast
+
+      - name: Test
+        if: ${{ !cancelled() }}
+        run: pnpm test
+
+      - name: Build packages
+        if: ${{ !cancelled() }}
+        run: pnpm build
+
+      # Re-run against dist: the source check cannot see what the bundler
+      # inlined, and this invariant is the whole thesis.
+      - name: Core purity (dist)
+        if: ${{ !cancelled() }}
+        run: pnpm core-purity
+
+      - name: Package lint
+        if: ${{ !cancelled() }}
+        run: pnpm package-lint
+
+      - name: Build docs site
+        if: ${{ !cancelled() }}
+        run: pnpm --filter docs build

@@ -1,0 +1,36 @@
+---
+title: kanso-ui
+description: Headless, accessible components for Vue 3 and React 19, built on one framework-agnostic core.
+template: splash
+hero:
+  tagline: The accessibility lives once. The frameworks are skins.
+  actions:
+    - text: Introduction
+      link: /getting-started/introduction/
+      icon: right-arrow
+    - text: Source
+      link: https://github.com/CaioAP/kanso-ui
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="One core, two frameworks">
+    State, keyboard handling, ARIA and focus management live once in plain
+    TypeScript. Vue and React are thin adapters that bind reactivity and render.
+  </Card>
+  <Card title="Headless by default">
+    Components expose `data-part` and `data-state`. The stylesheet is opt-in, and
+    the library ships no fonts.
+  </Card>
+  <Card title="Keyboard tested, not just scanned">
+    axe cannot detect a broken arrow-key handler or a leaking focus trap. Every
+    interactive component asserts its full keyboard map in both frameworks.
+  </Card>
+  <Card title="SSR safe">
+    IDs come from the framework's own stable primitive, never generated in core —
+    the mismatch that breaks naive headless libraries.
+  </Card>
+</CardGrid>

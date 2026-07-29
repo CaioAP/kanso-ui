@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"],
+
+    "baseUrl": ".",
+    "paths": {
+      "@caioalfonso/kanso-core": ["./packages/core/src/index.ts"],
+      "@caioalfonso/kanso-core/*": ["./packages/core/src/*"]
+    }
+  },
+  "include": [
+    "packages/*/src/**/*",
+    "packages/*/*.config.ts",
+    "packages/*/vitest.setup.ts",
+    "*.config.ts"
+  ]
+}
