@@ -14,6 +14,20 @@ permissions:
 
 jobs:
   release:
+    # Publishing is off until Phase 1 deliberately ships 0.0.1. Set the
+    # RELEASE_ENABLED repository variable to "true" at that point.
+    #
+    # This guard exists because the first run of this workflow tried to publish.
+    # The changesets action runs its publish step whenever no changesets are
+    # pending — which is the "Version Packages PR just merged" state, but is
+    # indistinguishable from "no changeset was ever written". With the packages
+    # at 0.0.0 and absent from the registry, npm accepts that as a real version,
+    # so an ordinary merge would have burned 0.0.0 permanently. npm does not
+    # allow republishing a version, even after unpublishing.
+    #
+    # The run only failed because the token demanded a 2FA code. A working token
+    # would have published. Do not remove this guard before 0.0.1 is out.
+    if: ${{ vars.RELEASE_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
