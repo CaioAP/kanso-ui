@@ -36,35 +36,51 @@ are additive. Cut from the end, never leave the middle unfinished.
 
 Rails only. Nothing user-visible.
 
-- [ ] `pnpm init`, `pnpm-workspace.yaml`, pin Node 24 + pnpm 10 via `packageManager`
-- [ ] Four package skeletons: `core`, `vue`, `react`, `styles` — correct
+- [x] `pnpm init`, `pnpm-workspace.yaml`, pin Node 24 + pnpm 10 via `packageManager`
+- [x] Four package skeletons: `core`, `vue`, `react`, `styles` — correct
       `package.json`, `exports`, `peerDependencies`, `publishConfig.access: public`
-- [ ] Root `tsconfig` + per-package configs, strict, project references
-- [ ] `biome.json` (mirror the portfolio repo's settings)
-- [ ] tsup config per package
-- [ ] `vitest.workspace.ts`, one project per package
-- [ ] Testing Library + `vitest-axe` wired for both frameworks
-- [ ] changesets initialised
-- [ ] `.github/workflows/ci.yml` — lint, typecheck, core-purity, test, build,
-      package-lint, docs build
-- [ ] `.github/workflows/release.yml` — changesets publish
-- [ ] `LICENSE` (MIT), `README.md`, `.gitignore`, `.nvmrc`
-- [ ] Starlight site scaffolded in `docs/`, both Vue and React integrations
-      registered, deploys "hello" to Cloudflare Pages
-- [ ] **Verify the token contrast ratios in `docs/02` §3** and correct the values.
-      Record the measured numbers in `docs/09`. Until this is done, no AA claim.
-- [ ] `core/src/types.ts` — `PropTypes`, `NormalizeProps`, `Dict`
-- [ ] `core/src/dom/attrs.ts` — `dataAttr`, `ariaAttr`
-- [ ] `normalizeProps` in both adapters, **with unit tests**
+- [x] Root `tsconfig`, strict — one flat program with `paths`, **not** project
+      references (`docs/05` §2 explains why)
+- [x] `biome.json` (mirror the portfolio repo's settings)
+- [x] tsup config per package; `styles` copies CSS instead
+- [x] `vitest.config.ts` with `test.projects`, one project per package —
+      `vitest.workspace.ts` is deprecated in Vitest 3.2
+- [x] Testing Library + `vitest-axe` wired for both frameworks
+- [x] changesets initialised, `fixed` so all four packages version in lockstep
+- [x] `.github/workflows/ci.yml` — lint, typecheck, core-purity, contrast, test,
+      build, package-lint, docs build
+- [x] `.github/workflows/release.yml` — changesets publish
+- [x] `LICENSE` (MIT), `README.md`, `.gitignore`, `.nvmrc`
+- [x] Starlight site scaffolded in `docs/`, both Vue and React integrations
+      registered, both islands verified to build on one page
+- [ ] Docs site deployed to Cloudflare Pages — *blocked on the human task below*
+- [x] **Verify the token contrast ratios in `docs/02` §3** and correct the values.
+      Measured numbers recorded in `docs/09`; `pnpm contrast` is now a CI gate.
+- [x] `core/src/types.ts` — `PropTypes`, `NormalizeProps`, `Dict`
+- [x] `core/src/dom/attrs.ts` — `dataAttr`, `ariaAttr`
+- [x] `normalizeProps` in both adapters, **with unit tests**
 
 **Human tasks (block Phase 1's publish step):**
 - [ ] `npm adduser` → confirm the `@caioalfonso` scope, enable 2FA
 - [ ] Create the npm automation token → `NPM_TOKEN` GitHub secret
-- [ ] Create the GitHub repo, push, set `main` protected
+- [x] Create the GitHub repo, push — `github.com/CaioAP/kanso-ui`
+- [ ] Set `main` protected, requiring CI
 - [ ] Create the Cloudflare Pages project (Pages flow — **not** Workers)
 
 **Done when:** CI is green on an empty repo, the docs site is deployed, and
 `pnpm build` produces valid (if empty) packages.
+
+**Status:** every gate passes locally (`lint`, `typecheck`, `core-purity`,
+`contrast`, `test`, `build`, `package-lint`, docs build) and
+`pnpm install --frozen-lockfile` succeeds, which is what CI runs first.
+
+**Two DoD items remain open.** The workflow files have never executed — a green
+CI run needs a push. And the Cloudflare Pages deploy is human-gated. Do not mark
+Phase 0 done on a local gate run; "the pipeline works on my machine" is exactly
+the claim this phase exists to disprove.
+
+No changeset yet — the packages are unpublished at `0.0.0`, so the first
+changeset belongs to Phase 1's `0.0.1` publish.
 
 ---
 

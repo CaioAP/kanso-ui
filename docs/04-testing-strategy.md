@@ -180,7 +180,10 @@ pnpm test --project vue
 pnpm --filter docs test:e2e
 ```
 
-Vitest workspace with one project per package, so a failure names its package.
+One Vitest project per package — declared as `test.projects` in the root
+`vitest.config.ts`, since `vitest.workspace.ts` is deprecated as of Vitest 3.2 —
+so a failure names its package. Each package owns its own `vitest.config.ts` with
+its environment and setup file.
 
 **Never verify a gate by truncating its output.** Read the verdict or key off the
 exit status.

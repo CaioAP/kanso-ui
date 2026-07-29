@@ -5,10 +5,10 @@ framework-agnostic core.
 
 > *Kanso* (簡素) — simplicity through the elimination of clutter.
 
-**Status: pre-implementation.** This repository currently contains the complete
-specification and no code. See [`docs/07-roadmap.md`](docs/07-roadmap.md) for the
-build plan and [`docs/09-progress-checklist.md`](docs/09-progress-checklist.md)
-for current state.
+**Status: Phase 0 — foundations.** The workspace, build, test and CI rails are in
+place; no components are implemented yet. Switch lands in Phase 1. See
+[`docs/07-roadmap.md`](docs/07-roadmap.md) for the build plan and
+[`docs/09-progress-checklist.md`](docs/09-progress-checklist.md) for current state.
 
 ## The idea
 

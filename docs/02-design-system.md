@@ -85,9 +85,9 @@ dark variant. Every one is overridable — that *is* the theming API.
   --kanso-fg-muted:      oklch(45%   0.006 95);
   --kanso-fg-faint:      oklch(60%   0.005 95);
 
-  /* structure */
+  /* structure — see "line vs line-strong" below; the split is an a11y rule */
   --kanso-line:          oklch(88%   0.004 95);
-  --kanso-line-strong:   oklch(78%   0.005 95);
+  --kanso-line-strong:   oklch(64%   0.005 95);
 
   /* accent — restrained indigo, deliberately not the portfolio's vermilion */
   --kanso-accent:        oklch(52%   0.13  258);
@@ -130,7 +130,7 @@ dark variant. Every one is overridable — that *is* the theming API.
   --kanso-fg-muted:      oklch(72%   0.005 95);
   --kanso-fg-faint:      oklch(58%   0.005 95);
   --kanso-line:          oklch(32%   0.006 95);
-  --kanso-line-strong:   oklch(42%   0.007 95);
+  --kanso-line-strong:   oklch(51%   0.007 95);
   --kanso-accent:        oklch(70%   0.12  258);
   --kanso-accent-hover:  oklch(76%   0.12  258);
   --kanso-on-accent:     oklch(16%   0.01  258);
@@ -139,15 +139,34 @@ dark variant. Every one is overridable — that *is* the theming API.
 }
 ```
 
-> ⚠️ **These values are unverified starting points, not measured results.**
-> They were chosen by eye and reasoning, and no contrast ratio in this table has
-> been computed. Phase 0 includes a task to run every foreground/background pair
-> through a contrast checker and correct the values. **Do not claim WCAG AA
-> conformance for the stylesheet until that task is done and the numbers are
-> recorded in `docs/09`.** The pairs that need checking:
-> `fg`/`bg`, `fg-muted`/`bg`, `fg-faint`/`bg` (large text only), `on-accent`/`accent`,
-> `on-danger`/`danger`, `accent`/`bg` (focus ring, needs 3:1 non-text),
-> `line`/`bg` (needs 3:1 where a border is the only state indicator).
+### Measured, not assumed
+
+These values were originally chosen by eye. They have since been **measured** —
+`pnpm contrast` converts each token OKLCh → sRGB → 8-bit → WCAG relative
+luminance and reports every pair, failing the build if one drops below its
+requirement. It parses `packages/styles/src/tokens.css` rather than holding a
+copy of the values, so it cannot drift from what actually ships, and it
+self-checks its converter against known anchors (`oklch(100% 0 0)` → `#ffffff`,
+`oklch(62.8% 0.2577 29.23)` → `#ff0000`, white-on-black = 21:1) before reporting
+anything.
+
+Full results are recorded in `docs/09`. One value changed as a result:
+`--kanso-line-strong` moved from `78%` → `64%` (light) and `42%` → `51%` (dark).
+
+### `line` vs `line-strong`
+
+The two structure tokens differ by an accessibility rule, not by taste.
+
+- `--kanso-line` is a **decorative** hairline — separators, table rules, quiet
+  container edges. It is deliberately below 3:1 (1.40:1 on `bg`) because a
+  hairline that meets 3:1 is a heavy grey line and wrecks the restraint the
+  system is for.
+- `--kanso-line-strong` is the token for any border that **is** a state
+  indicator — an input's edge, a switch track, a selected outline. It is
+  measured at ≥ 3:1 against both `bg` and `surface` (WCAG 2.2 SC 1.4.11).
+
+A component that uses `--kanso-line` where the border is the only cue for a
+state is a bug. Reach for `--kanso-line-strong`, and add a non-colour cue too.
 
 ### Dark mode
 

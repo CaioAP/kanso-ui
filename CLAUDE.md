@@ -60,20 +60,22 @@ deliberately; the reasoning is in the linked doc.
 
 ## Commands
 
-Nothing here works until Phase 0 lands. Create these scripts as part of Phase 0.
-
 ```bash
 pnpm install
-pnpm build          # build all packages (tsup)
-pnpm typecheck      # tsc --noEmit across the workspace
+pnpm build          # build all packages (tsup; styles just copies CSS)
+pnpm typecheck      # tsc --noEmit over the whole workspace
 pnpm lint           # biome check .
+pnpm lint:fix       # biome check --write .
 pnpm test           # vitest run (core + both adapters)
-pnpm test:a11y      # vitest a11y projects (axe)
+pnpm test:a11y      # the adapter projects, where the axe assertions live
+pnpm core-purity    # assert packages/core imports no framework — the thesis
+pnpm contrast       # measure every token pair against its WCAG requirement
+pnpm package-lint   # publint + arethetypeswrong on each package
 pnpm changeset      # record a version bump — required on any package change
 
 pnpm --filter docs dev     # Starlight dev server
 pnpm --filter docs build
-pnpm --filter docs test:e2e  # Playwright + axe against the docs site
+pnpm --filter docs test:e2e  # Playwright + axe against the docs site (Phase 1)
 ```
 
 **Never check whether a gate passed by truncating its output.** `pnpm lint | tail -2`
@@ -111,10 +113,12 @@ up front and expensive to discover later.
 - **SSR id mismatch.** The single most common headless-library bug. Core must not
   generate ids. Adapters pass framework-stable ids in. Phase 1 includes an explicit
   server-render test in both frameworks to lock this down.
-- **`normalizeProps` is not identity for Vue.** React takes `className` / `htmlFor`;
-  Vue DOM props take `class` / `for`. Core emits one neutral shape and each adapter's
-  `normalizeProps` translates. Getting this wrong fails silently — the attribute just
-  never lands on the element. See `docs/01` §4.
+- **`normalizeProps` is not identity for either adapter.** React takes
+  `className` / `htmlFor`; Vue takes `class` / `for` but needs event handler
+  names **lowercased** — `onKeyDown` makes Vue listen for a `key-down` event that
+  never fires. Core emits React's camelCase form (`onKeyDown`) because
+  `KeyDown → keydown` is mechanical while the reverse is not. Both failure modes
+  are silent: the attribute or listener simply never lands. See `docs/01` §4.
 - **`peerDependencies`, not `dependencies`.** `vue` and `react` must be peers in the
   adapter packages, or consumers get a second copy of the framework and hooks break
   in ways that are miserable to debug.
@@ -128,9 +132,11 @@ up front and expensive to discover later.
 - **Starlight needs both integrations.** Mounting a Vue island and a React island on
   the same docs page requires `@astrojs/vue` *and* `@astrojs/react` registered. They
   coexist fine; the failure is forgetting one and getting a cryptic build error.
-- **Contrast values in `docs/02` are unverified starting points**, not measured
-  results. They must be run through a contrast checker in Phase 0 and corrected
-  before the stylesheet is called done. Do not claim AA compliance until measured.
+- **Contrast is measured, and stays measured.** `pnpm contrast` parses
+  `packages/styles/src/tokens.css`, converts OKLCh → sRGB → WCAG luminance, and
+  fails on any pair below its requirement. It runs in CI. If you change a colour
+  token, run it. Do not add a colour pair to a component without adding it to the
+  pair list in `scripts/contrast.mjs`.
 
 ## npm identity
 

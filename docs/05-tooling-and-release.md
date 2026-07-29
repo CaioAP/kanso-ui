@@ -33,16 +33,32 @@ Root `package.json` scripts fan out with `pnpm -r` / `--filter`:
 {
   "private": true,
   "scripts": {
-    "build":     "pnpm -r --filter './packages/*' build",
-    "typecheck": "tsc --build",
-    "lint":      "biome check .",
-    "lint:fix":  "biome check --write .",
-    "test":      "vitest run",
-    "changeset": "changeset",
-    "release":   "pnpm build && changeset publish"
+    "build":        "pnpm -r --filter './packages/*' build",
+    "typecheck":    "tsc --noEmit",
+    "lint":         "biome check .",
+    "lint:fix":     "biome check --write .",
+    "test":         "vitest run",
+    "core-purity":  "node scripts/core-purity.mjs",
+    "contrast":     "node scripts/contrast.mjs",
+    "package-lint": "pnpm -r --filter './packages/*' package-lint",
+    "changeset":    "changeset",
+    "release":      "pnpm build && changeset publish"
   }
 }
 ```
+
+**Typecheck is one flat program, not TypeScript project references.** A single
+root `tsconfig.json` includes every package's `src` and maps siblings with
+`paths`, so `@caioalfonso/kanso-core` resolves to core's *source* during
+development. Project references would need core's `.d.ts` to exist at the path
+its `exports` map advertises — which is `dist/`, which tsup owns and cleans — so
+references would make typechecking depend on build order for no benefit at this
+size. Whether the *published* entry points resolve is a separate question,
+answered by `publint` / `arethetypeswrong` and the clean-directory install check
+in Phase 1.
+
+The Vitest config mirrors that mapping with a `resolve.alias`, so tests run
+against core's source too.
 
 ## 3. Package build (tsup)
 
@@ -95,6 +111,12 @@ lets bundlers drop unused components — verify it works rather than assuming.
 CI runs `publint` and `arethetypeswrong` against the built tarball, so a broken
 `exports` map fails the build instead of shipping.
 
+`attw` runs with `--profile esm-only`. That suppresses exactly two findings, both
+of which are the ESM-only decision working as intended rather than defects: the
+`node10` resolver has no `exports` support at all, and `require()` of an ESM file
+is an error for CJS consumers. Every resolution mode this library actually
+targets — `node16` from ESM, and bundlers — is still checked and must be green.
+
 ## 4. The styles package
 
 Plain CSS, no build step beyond copying and minifying:
@@ -136,19 +158,25 @@ mechanical, not a matter of discipline.
 Three layers:
 
 1. **package.json** — `core` has no `dependencies` and no `peerDependencies`.
-2. **A CI grep**, cheap and blunt:
+2. **A specifier scan** — `scripts/core-purity.mjs`, run as `pnpm core-purity`.
+   A bare `grep "from 'vue'"` is too narrow: it misses side-effect imports
+   (`import 'vue'`), dynamic `import('vue')` and `require()`. The script extracts
+   every module specifier instead and rejects `vue`, `@vue/*`, `react`,
+   `react-dom` and — because core must stay runtime-agnostic — anything
+   `node:`-prefixed. A type-only import counts as a violation: the bytes vanish,
+   but the design has already leaked.
 
-   ```bash
-   if grep -rEn "from ['\"](vue|react|react-dom)" packages/core/src; then
-     echo "core must not import a framework"; exit 1
-   fi
-   ```
-
-3. **A bundle assertion** — after build, `packages/core/dist` must contain no
-   framework import. pnpm's strict resolution makes an accidental import fail to
-   resolve locally too, which is the fastest feedback of all.
+3. **A bundle assertion** — the same script scans `packages/core/dist` when it
+   exists, so CI runs it once before the build and once after. pnpm's strict
+   resolution makes an accidental import fail to resolve locally too, which is
+   the fastest feedback of all.
 
 Run all three. This invariant is the whole thesis; protect it accordingly.
+
+**Verify the gate by breaking it on purpose.** Plant a framework import in
+`packages/core/src`, confirm a non-zero exit, remove it. A check nobody has
+watched fail is not a check. (Done in Phase 0; the probe caught all three import
+forms.)
 
 ## 7. CI
 
@@ -157,17 +185,21 @@ Run all three. This invariant is the whole thesis; protect it accordingly.
 ```
 setup (pnpm, node 24, cache)
   → lint         biome check .
-  → typecheck    tsc --build
-  → core-purity  the grep above
+  → typecheck    tsc --noEmit
+  → core-purity  specifier scan over src
+  → contrast     token ratios measured from tokens.css
   → test         vitest run
   → build        all packages
+  → core-purity  specifier scan over dist
   → package-lint publint + arethetypeswrong
   → docs build   astro build
-  → e2e          playwright + axe
+  → e2e          playwright + axe        (added in Phase 1)
 ```
 
-Fail fast on lint/typecheck; run the rest even if one fails so a single run
-surfaces every problem.
+Every step carries `if: ${{ !cancelled() }}`, so one run surfaces every problem
+rather than one problem at a time. The steps are cheap and the alternative —
+fixing a lint error, pushing, then discovering a test failure — costs more than
+it saves.
 
 Playwright browsers are cached and installed with `--with-deps`.
 
