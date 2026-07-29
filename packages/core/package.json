@@ -1,0 +1,41 @@
+{
+  "name": "@caioalfonso/kanso-core",
+  "version": "0.0.0",
+  "description": "Framework-agnostic behaviour core for kanso-ui — state, keyboard, ARIA and focus, with zero dependencies.",
+  "license": "MIT",
+  "author": "Caio Alfonso",
+  "homepage": "https://github.com/CaioAP/kanso-ui#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CaioAP/kanso-ui.git",
+    "directory": "packages/core"
+  },
+  "bugs": "https://github.com/CaioAP/kanso-ui/issues",
+  "keywords": [
+    "headless",
+    "accessibility",
+    "a11y",
+    "wai-aria",
+    "components",
+    "kanso"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "package-lint": "publint --strict && attw --pack . --profile esm-only"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "@caioalfonso/kanso-styles",
+  "version": "0.0.0",
+  "description": "Optional stylesheet and design tokens for kanso-ui. Targets data-part / data-state only.",
+  "license": "MIT",
+  "author": "Caio Alfonso",
+  "homepage": "https://github.com/CaioAP/kanso-ui#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CaioAP/kanso-ui.git",
+    "directory": "packages/styles"
+  },
+  "bugs": "https://github.com/CaioAP/kanso-ui/issues",
+  "keywords": [
+    "css",
+    "design-tokens",
+    "oklch",
+    "headless",
+    "kanso"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": "./dist/index.css",
+    "./tokens": "./dist/tokens.css",
+    "./base": "./dist/base.css",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node ./build.mjs",
+    "package-lint": "publint --strict"
+  }
+}
