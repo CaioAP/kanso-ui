@@ -1,0 +1,38 @@
+/**
+ * Shared primitives every component relies on.
+ *
+ * Scoped to [data-kanso], which core emits on the root part only — so component
+ * rules are descendant selectors with a space, and rules for the root itself use
+ * the compound form. See docs/02 §2; the selector shape is a contract.
+ *
+ * The library ships no fonts and sets no font-family. Components inherit from
+ * the host app.
+ */
+
+[data-kanso],
+[data-kanso] * {
+  box-sizing: border-box;
+}
+
+/*
+ * Focus is the most important visual in the system. :focus-visible only — never
+ * a ring on mouse click, always a ring on keyboard. Never outline: none without
+ * an equally visible replacement.
+ */
+[data-kanso] [data-part]:focus-visible,
+[data-kanso][data-part='root']:focus-visible {
+  outline: var(--kanso-focus-ring) solid var(--kanso-focus-color);
+  outline-offset: var(--kanso-focus-ring-offset);
+}
+
+/* The one sanctioned !important in the codebase. */
+@media (prefers-reduced-motion: reduce) {
+  [data-kanso],
+  [data-kanso] * {
+    /* biome-ignore lint/complexity/noImportantStyles: honouring a reduced-motion
+       request must beat any consumer override; docs/02 §4 sanctions this one use. */
+    transition: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: same — see above. */
+    animation: none !important;
+  }
+}

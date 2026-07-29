@@ -1,0 +1,97 @@
+/**
+ * kanso-ui design tokens.
+ *
+ * Every value is a CSS custom property under the --kanso- namespace, and every
+ * one is overridable — that is the whole theming API. The library never writes
+ * data-theme itself; theme ownership belongs to the host app.
+ */
+
+:root,
+[data-theme='light'] {
+  /* surfaces */
+  --kanso-bg: oklch(99% 0.002 95);
+  --kanso-surface: oklch(97% 0.003 95);
+  --kanso-surface-sunk: oklch(94.5% 0.004 95);
+
+  /* ink */
+  --kanso-fg: oklch(22% 0.006 95);
+  --kanso-fg-muted: oklch(45% 0.006 95);
+  --kanso-fg-faint: oklch(60% 0.005 95);
+
+  /*
+   * structure — two tokens, and the difference is an accessibility rule, not a
+   * shade preference. --kanso-line is a decorative hairline and is deliberately
+   * below 3:1. Any border that is the only indicator of a state must use
+   * --kanso-line-strong, which is measured at >= 3:1 against bg and surface
+   * (WCAG 2.2 SC 1.4.11). Run `pnpm contrast` after changing either.
+   */
+  --kanso-line: oklch(88% 0.004 95);
+  --kanso-line-strong: oklch(64% 0.005 95);
+
+  /* accent — restrained indigo, deliberately not the portfolio's vermilion */
+  --kanso-accent: oklch(52% 0.13 258);
+  --kanso-accent-hover: oklch(46% 0.13 258);
+  --kanso-on-accent: oklch(99% 0.002 258);
+
+  /* feedback */
+  --kanso-danger: oklch(52% 0.17 27);
+  --kanso-on-danger: oklch(99% 0.002 27);
+
+  /* geometry */
+  --kanso-radius: 0px; /* kanso default: square */
+  --kanso-radius-sm: 2px; /* small controls only */
+  --kanso-radius-full: 9999px; /* switch thumb only */
+  --kanso-border: 1px;
+
+  /* focus */
+  --kanso-focus-ring: 2px;
+  --kanso-focus-ring-offset: 2px;
+  --kanso-focus-color: var(--kanso-accent);
+
+  /* spacing — 4px base */
+  --kanso-space-1: 0.25rem;
+  --kanso-space-2: 0.5rem;
+  --kanso-space-3: 0.75rem;
+  --kanso-space-4: 1rem;
+  --kanso-space-6: 1.5rem;
+  --kanso-space-8: 2rem;
+
+  /* motion */
+  --kanso-duration: 140ms;
+  --kanso-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* An explicit data-theme always wins; the preference only applies without one. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --kanso-bg: oklch(18% 0.004 95);
+    --kanso-surface: oklch(21% 0.005 95);
+    --kanso-surface-sunk: oklch(15% 0.004 95);
+    --kanso-fg: oklch(93% 0.004 95);
+    --kanso-fg-muted: oklch(72% 0.005 95);
+    --kanso-fg-faint: oklch(58% 0.005 95);
+    --kanso-line: oklch(32% 0.006 95);
+    --kanso-line-strong: oklch(51% 0.007 95);
+    --kanso-accent: oklch(70% 0.12 258);
+    --kanso-accent-hover: oklch(76% 0.12 258);
+    --kanso-on-accent: oklch(16% 0.01 258);
+    --kanso-danger: oklch(68% 0.16 27);
+    --kanso-on-danger: oklch(16% 0.01 27);
+  }
+}
+
+[data-theme='dark'] {
+  --kanso-bg: oklch(18% 0.004 95);
+  --kanso-surface: oklch(21% 0.005 95);
+  --kanso-surface-sunk: oklch(15% 0.004 95);
+  --kanso-fg: oklch(93% 0.004 95);
+  --kanso-fg-muted: oklch(72% 0.005 95);
+  --kanso-fg-faint: oklch(58% 0.005 95);
+  --kanso-line: oklch(32% 0.006 95);
+  --kanso-line-strong: oklch(51% 0.007 95);
+  --kanso-accent: oklch(70% 0.12 258);
+  --kanso-accent-hover: oklch(76% 0.12 258);
+  --kanso-on-accent: oklch(16% 0.01 258);
+  --kanso-danger: oklch(68% 0.16 27);
+  --kanso-on-danger: oklch(16% 0.01 27);
+}
