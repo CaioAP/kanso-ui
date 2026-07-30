@@ -1,8 +1,10 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
+  // One entry per component, plus the barrel. See docs/01 §10.
   entry: {
     index: 'src/index.ts',
+    switch: 'src/switch/index.ts',
   },
   format: ['esm'],
   dts: true,

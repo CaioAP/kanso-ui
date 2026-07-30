@@ -8,11 +8,14 @@ import type { SwitchEvent, SwitchIds, SwitchState, SwitchStateInit } from './swi
  * client, and React/Vue report that as a hydration mismatch. See CLAUDE.md rule 3.
  */
 export function switchIds(id: string): SwitchIds {
+  // The root takes the supplied id verbatim, so a consumer who passes
+  // `id="notify"` can select `#notify` and get what they expect. Everything else
+  // is a suffix of it.
   return {
-    root: `kanso-switch-${id}`,
-    control: `kanso-switch-${id}-control`,
-    label: `kanso-switch-${id}-label`,
-    hiddenInput: `kanso-switch-${id}-input`,
+    root: id,
+    control: `${id}-control`,
+    label: `${id}-label`,
+    hiddenInput: `${id}-input`,
   };
 }
 

@@ -446,24 +446,63 @@ export function Switch({ checked, defaultChecked, onCheckedChange, ...props }: S
 
 ### Vue adapter
 
-```vue
-<script setup lang="ts">
-const vueId = useId()
-const state = ref(initialSwitchState({ id: props.id ?? vueId, ... }))
-const send = (e: SwitchEvent) => { state.value = switchReducer(state.value, e) }
-const api = computed(() => connectSwitch(state.value, send, normalizeProps))
-</script>
+**Amended during Phase 1: a render function, not an SFC.** The packages are
+bundled with tsup, and esbuild cannot compile a `.vue` file. Adding a compiler
+step to ship template sugar would trade a plain ESM build and working `.d.ts`
+for syntax. `defineComponent` + `h()` needs no compiler and produces the same
+tree.
 
-<template>
-  <span v-bind="api.rootProps">
-    <button v-bind="api.controlProps"><span v-bind="api.thumbProps" /></button>
-    <label v-if="label" v-bind="api.labelProps">{{ label }}</label>
-    <input v-if="name" v-bind="api.hiddenInputProps">
-  </span>
-</template>
+```ts
+export const Switch = defineComponent({
+  props: { modelValue: …, checked: …, defaultChecked: …, /* … */ },
+  emits: ['update:modelValue', 'checkedChange'],
+  inheritAttrs: false,
+  setup(props, { emit, attrs, slots }) {
+    const vueId = useId()
+    const uncontrolledChecked = ref(props.defaultChecked)
+    const checked = computed(() => props.checked ?? props.modelValue ?? uncontrolledChecked.value)
+    const state = computed(() => initialSwitchState({ id: props.id ?? vueId, checked: checked.value, … }))
+
+    const send = (event: SwitchEvent) => { /* same three lines as React */ }
+
+    return () => {
+      const api = connectSwitch(state.value, send, normalizeProps)
+      return h('span', { ...rootAttributes, ...api.rootProps }, [
+        h('button', api.controlProps, h('span', api.thumbProps)),
+        hasLabel.value ? h('label', api.labelProps, props.label) : null,
+        props.name ? h('input', api.hiddenInputProps) : null,
+      ])
+    }
+  },
+})
 ```
 
-The symmetry is the point. Both files are ~20 lines and contain no behaviour.
+`inheritAttrs: false` matters: left on, Vue applies fallthrough attrs to the root
+element, so a consumer's `aria-label` would land on the root — but `role="switch"`
+is on the button, and that is where the accessible name has to go. Both adapters
+therefore route `aria-label` / `aria-labelledby` to the control by hand and spread
+the rest onto the root.
+
+The symmetry is the point. Both files are short and contain no behaviour.
+
+**Derived state, not stored state.** Neither adapter keeps `SwitchState` in a
+`useReducer` / `ref`. They hold only the uncontrolled `checked` boolean and rebuild
+the state object on each render, because every other field is a prop, and a prop
+copied into state goes stale the moment the consumer changes it. `initialSwitchState`
+is pure and total, so calling it per render costs nothing. `send` runs the reducer,
+compares the result by reference, and reports only real transitions:
+
+```ts
+const send = (event: SwitchEvent) => {
+  const next = switchReducer(state, event)
+  if (next === state) return              // the reducer refused it — a disabled toggle
+  if (!isControlled) setUncontrolledChecked(next.checked)
+  onCheckedChange?.(next.checked)
+}
+```
+
+That reference comparison is why the reducer returns the same object when nothing
+changed: it is what keeps `onCheckedChange` from firing on a refused toggle.
 
 ## 9. Controlled vs uncontrolled
 
