@@ -126,8 +126,8 @@ wrong **fails silently** — the attribute simply never reaches the DOM.
 |---|---|---|
 | `class` | `className` | `class` |
 | `for` | `htmlFor` | `for` |
-| `onKeyDown` | same | `onkeydown` |
-| `onClick` | same | `onclick` |
+| `onKeyDown` | same | `onKeydown` |
+| `onClick` | same | `onClick` |
 | `style` (object) | object | object |
 | `defaultValue` | same | n/a — Vue uses `value` |
 
@@ -154,25 +154,41 @@ export const normalizeProps = createNormalizer<ReactPropTypes>((props: Dict) => 
 ```
 
 Vue keeps `class` / `for` as written, drops `undefined` so its emitted attribute
-set matches React's exactly, and lowercases handler names:
+set matches React's exactly, and folds handler names to a single shape:
 
 ```ts
 // packages/vue/src/normalize-props.ts — the event branch
 if (key.startsWith('on') && key.length > 2 && !key.includes(':')) {
-  out[`on${key.slice(2).toLowerCase()}`] = value
+  // onKeyDown → onKeydown
+  out[`on${key.charAt(2).toUpperCase()}${key.slice(3).toLowerCase()}`] = value
   continue
 }
 ```
 
-The lowercasing is load-bearing. Vue derives the DOM event name by running the
+Both halves of that transform are load-bearing, and both failure modes are silent.
+
+**The tail must be lowercased.** Vue derives the DOM event name by running the
 part after `on` through `hyphenate`, so `onKeyDown` binds a listener for
-`key-down` — an event no browser fires, with no warning anywhere. `onUpdate:modelValue`
-is exempted: the colon marks it a component event, and lowercasing breaks `v-model`.
+`key-down` — an event no browser fires, with no warning anywhere.
+
+**The first letter must stay capitalised**, and this one cost a debugging
+session in Phase 1. Vue only recognises a prop as an event when it matches
+`/^on[^a-z]/`. A fully-lowercased `onclick` fails that test, so Vue falls
+through to its `key in el` check — which is true — and assigns `el.onclick` as
+a DOM property. **That works.** Clicks fire, tests pass, and nothing looks
+wrong. But hydration takes a different path: it only patches props Vue
+recognises as events, so a server-rendered component hydrates with *no handler
+at all* and is simply inert. Client-side tests cannot see this. The Phase 1 SSR
+test is what caught it.
+
+`onUpdate:modelValue` is exempted: the colon marks it a component event, and
+rewriting it breaks `v-model`.
 
 > Write `normalizeProps` once in Phase 0 and test it directly, including an
 > assertion that the props actually land on a rendered element. Every component
-> depends on it, so a bug here is a bug everywhere — and both failure modes are
-> silent.
+> depends on it, so a bug here is a bug everywhere — and every failure mode is
+> silent. Note that even that is not sufficient: the capitalisation bug above
+> passed a rendered-element test. Hydration is the only thing that catches it.
 
 ## 5. IDs — the SSR trap
 

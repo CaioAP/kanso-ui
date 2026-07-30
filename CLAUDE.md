@@ -115,10 +115,13 @@ up front and expensive to discover later.
   server-render test in both frameworks to lock this down.
 - **`normalizeProps` is not identity for either adapter.** React takes
   `className` / `htmlFor`; Vue takes `class` / `for` but needs event handler
-  names **lowercased** — `onKeyDown` makes Vue listen for a `key-down` event that
-  never fires. Core emits React's camelCase form (`onKeyDown`) because
-  `KeyDown → keydown` is mechanical while the reverse is not. Both failure modes
-  are silent: the attribute or listener simply never lands. See `docs/01` §4.
+  names folded to `on` + capital + lowercase tail — `onKeyDown` → `onKeydown`.
+  Core emits React's camelCase form because `KeyDown → keydown` is mechanical
+  while the reverse is not. **Do not lowercase the whole name.** `onkeydown`
+  fails Vue's `/^on[^a-z]/` event test, so Vue assigns it as the `el.onkeydown`
+  DOM property instead — which works on a fresh mount and is silently dropped on
+  hydration, leaving a server-rendered component inert. Every failure mode here
+  is silent, and only the SSR test catches that last one. See `docs/01` §4.
 - **`peerDependencies`, not `dependencies`.** `vue` and `react` must be peers in the
   adapter packages, or consumers get a second copy of the framework and hooks break
   in ways that are miserable to debug.
