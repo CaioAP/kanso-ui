@@ -164,6 +164,10 @@ const pairs = [
   ['danger', 'bg', 3.0, 'invalid border (SC 1.4.11)'],
   ['line-strong', 'surface', 3.0, 'state border on a surface'],
   ['line-strong', 'bg', 3.0, 'stronger border'],
+  // Switch. The thumb is a graphical object carrying state, so it needs 3:1
+  // against the track it sits on (SC 1.4.11) — in both positions.
+  ['fg-muted', 'surface-sunk', 3.0, 'switch thumb on an unchecked track'],
+  ['line-strong', 'surface-sunk', 3.0, 'switch track border, unchecked'],
 ];
 
 let failures = 0;

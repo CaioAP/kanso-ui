@@ -25,6 +25,30 @@
   outline-offset: var(--kanso-focus-ring-offset);
 }
 
+/*
+ * Hidden form mirrors — the `hidden-input` part every form component renders
+ * when `name` is set.
+ *
+ * Clipped, never `display: none` and never the `hidden` attribute. A control
+ * hidden by display is skipped by constraint validation, so `required` would
+ * silently stop blocking submission. Clipping keeps it in the form and in the
+ * layout while removing it from view; `aria-hidden` and `tabindex="-1"` (set by
+ * core) keep it out of the a11y tree and the tab order.
+ */
+[data-kanso] [data-part='hidden-input'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+  /* It sits inside the root, so a stray click must not reach it. */
+  pointer-events: none;
+}
+
 /* The one sanctioned !important in the codebase. */
 @media (prefers-reduced-motion: reduce) {
   [data-kanso],

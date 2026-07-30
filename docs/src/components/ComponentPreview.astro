@@ -1,0 +1,226 @@
+---
+/**
+ * The playground: a live component in both frameworks, prop knobs, and the
+ * real example source.
+ *
+ * The framework toggle is the single most important interaction on the site —
+ * it is the thesis, demonstrated. Both islands are rendered and one is hidden,
+ * so switching is instant and neither has to re-mount.
+ *
+ * Built as a hand-rolled tablist for now. docs/06 §6 wants this to dogfood the
+ * library's own Tabs once Tabs exists (Phase 2); until then the roving
+ * tabindex and arrow-key handling live in the inline script below.
+ *
+ * No editable REPL, deliberately — see docs/06 §6.
+ */
+// Starlight's Code, not astro:components' — Starlight swaps Shiki out for
+// Expressive Code, so only Expressive Code is themed to match the site, and it
+// brings its own accessible copy button (docs/06 §6's requirement, met without
+// hand-rolling a clipboard interaction).
+import { Code } from '@astrojs/starlight/components';
+
+interface Props {
+  /** Raw source of the Vue example, imported with `?raw` so it cannot drift. */
+  vueSource: string;
+  /** Raw source of the React example, imported with `?raw`. */
+  reactSource: string;
+  /** Accessible name for the whole preview, e.g. "Switch". */
+  label: string;
+}
+
+const { vueSource, reactSource, label } = Astro.props;
+---
+
+<div class="preview" data-preview>
+  <div class="preview-bar">
+    <div role="tablist" aria-label={`${label} framework`} class="preview-tabs">
+      <button
+        type="button"
+        role="tab"
+        id={`${label}-tab-vue`}
+        aria-controls={`${label}-panel-vue`}
+        aria-selected="true"
+        data-framework="vue"
+      >
+        Vue
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id={`${label}-tab-react`}
+        aria-controls={`${label}-panel-react`}
+        aria-selected="false"
+        tabindex="-1"
+        data-framework="react"
+      >
+        React
+      </button>
+    </div>
+
+    <button type="button" class="preview-theme" data-theme-toggle aria-pressed="false">
+      Dark preview
+    </button>
+  </div>
+
+  <div class="preview-body" data-preview-body>
+    <div
+      role="tabpanel"
+      id={`${label}-panel-vue`}
+      aria-labelledby={`${label}-tab-vue`}
+      data-panel="vue"
+    >
+      <slot name="vue" />
+    </div>
+    <div
+      role="tabpanel"
+      id={`${label}-panel-react`}
+      aria-labelledby={`${label}-tab-react`}
+      data-panel="react"
+      hidden
+    >
+      <slot name="react" />
+    </div>
+  </div>
+
+  <div class="preview-source">
+    <div data-source="vue">
+      <Code code={vueSource} lang="vue" title="Switch.vue" />
+    </div>
+    <div data-source="react" hidden>
+      <Code code={reactSource} lang="tsx" title="Switch.tsx" />
+    </div>
+  </div>
+</div>
+
+<script>
+  for (const preview of document.querySelectorAll<HTMLElement>('[data-preview]')) {
+    const tabs = [...preview.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+
+    const select = (framework: string) => {
+      for (const tab of tabs) {
+        const selected = tab.dataset.framework === framework;
+        tab.setAttribute('aria-selected', String(selected));
+        // Roving tabindex: only the selected tab is in the tab order, so Tab
+        // moves past the tablist rather than through every option.
+        tab.tabIndex = selected ? 0 : -1;
+      }
+
+      for (const panel of preview.querySelectorAll<HTMLElement>('[data-panel]')) {
+        panel.hidden = panel.dataset.panel !== framework;
+      }
+      for (const block of preview.querySelectorAll<HTMLElement>('[data-source]')) {
+        block.hidden = block.dataset.source !== framework;
+      }
+    };
+
+    for (const [index, tab] of tabs.entries()) {
+      tab.addEventListener('click', () => select(tab.dataset.framework ?? 'vue'));
+
+      tab.addEventListener('keydown', (event) => {
+        const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+        if (offset === 0) return;
+        event.preventDefault();
+        const next = tabs[(index + offset + tabs.length) % tabs.length];
+        select(next.dataset.framework ?? 'vue');
+        next.focus();
+      });
+    }
+
+    // Flips the preview only, so light and dark can be compared without
+    // changing the page around it.
+    const themeToggle = preview.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+    const body = preview.querySelector<HTMLElement>('[data-preview-body]');
+    themeToggle?.addEventListener('click', () => {
+      const dark = themeToggle.getAttribute('aria-pressed') === 'true';
+      themeToggle.setAttribute('aria-pressed', String(!dark));
+      body?.setAttribute('data-theme', dark ? 'light' : 'dark');
+    });
+  }
+</script>
+
+<style>
+  .preview {
+    margin-block: 1.5rem;
+    border: 1px solid var(--sl-color-gray-5);
+  }
+
+  .preview-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    border-block-end: 1px solid var(--sl-color-gray-5);
+    background: var(--sl-color-gray-7, var(--sl-color-gray-6));
+  }
+
+  .preview-tabs {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .preview-tabs button,
+  .preview-theme {
+    padding: 0.25rem 0.625rem;
+    border: 1px solid transparent;
+    background: none;
+    color: var(--sl-color-gray-2);
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+  }
+
+  .preview-tabs button[aria-selected='true'] {
+    border-color: var(--sl-color-gray-5);
+    background: var(--sl-color-bg);
+    color: var(--sl-color-white);
+  }
+
+  .preview-body {
+    display: flex;
+    min-height: 8rem;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    /* The preview carries its own theme, so it needs its own background. */
+    background: var(--kanso-bg);
+    color: var(--kanso-fg);
+  }
+
+  .preview-source {
+    border-block-start: 1px solid var(--sl-color-gray-5);
+  }
+
+  /* Expressive Code sets its own margins; inside the frame they are wrong. */
+  .preview-source :global(.expressive-code) {
+    margin: 0;
+  }
+
+  /* Layout for the islands themselves, shared by both frameworks. */
+  .preview :global(.preview-stage) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .preview :global(.preview-knobs) {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--kanso-line);
+    font-size: 0.8125rem;
+  }
+
+  .preview :global(.preview-knobs legend) {
+    padding-inline: 0.25rem;
+    color: var(--kanso-fg-muted);
+  }
+
+  .preview :global(.preview-knobs label) {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    cursor: pointer;
+  }
+</style>

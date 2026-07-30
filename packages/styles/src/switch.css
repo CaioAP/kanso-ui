@@ -1,0 +1,102 @@
+/**
+ * Switch.
+ *
+ * Scoped by [data-scope='switch'] because part names repeat across components —
+ * every component has a `root` and most have a `label`. See docs/02 §2.
+ *
+ * The primary state cue is **position**: the thumb moves. Colour is
+ * reinforcement, never the only signal, so the component still reads correctly
+ * in monochrome or to someone who cannot distinguish the two fills. See
+ * docs/03 §1.
+ */
+
+[data-kanso][data-scope='switch'] {
+  /*
+   * The track is the click target, so it is 44x24 rather than the smaller size
+   * the design would otherwise want: WCAG 2.2 SC 2.5.8 requires 24x24 CSS
+   * pixels, and axe flagged an earlier 36x20 track as a real failure. Overriding
+   * these below 24px reintroduces that failure.
+   */
+  --kanso-switch-track-w: 2.75rem;
+  --kanso-switch-track-h: 1.5rem;
+  --kanso-switch-thumb: 1rem;
+  --kanso-switch-pad: 3px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kanso-space-2);
+}
+
+/* The track. A real <button>, so it inherits keyboard behaviour and focus. */
+[data-scope='switch'] [data-part='control'] {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: var(--kanso-switch-track-w);
+  height: var(--kanso-switch-track-h);
+  padding: var(--kanso-switch-pad);
+  border: var(--kanso-border) solid var(--kanso-line-strong);
+  border-radius: var(--kanso-radius-sm);
+  background: var(--kanso-surface-sunk);
+  cursor: pointer;
+  /* The library sets no font-family; the button must not impose one either. */
+  font: inherit;
+  transition:
+    background-color var(--kanso-duration) var(--kanso-ease),
+    border-color var(--kanso-duration) var(--kanso-ease);
+}
+
+[data-scope='switch'] [data-part='control'][data-state='checked'] {
+  border-color: var(--kanso-accent);
+  background: var(--kanso-accent);
+}
+
+/* The thumb. Its travel is the state cue. */
+[data-scope='switch'] [data-part='thumb'] {
+  width: var(--kanso-switch-thumb);
+  height: var(--kanso-switch-thumb);
+  border-radius: var(--kanso-radius-full);
+  background: var(--kanso-fg-muted);
+  transition:
+    transform var(--kanso-duration) var(--kanso-ease),
+    background-color var(--kanso-duration) var(--kanso-ease);
+}
+
+[data-scope='switch'] [data-part='thumb'][data-state='checked'] {
+  background: var(--kanso-on-accent);
+  transform: translateX(
+    calc(
+      var(--kanso-switch-track-w) -
+      var(--kanso-switch-thumb) -
+      (2 * var(--kanso-switch-pad)) -
+      (2 * var(--kanso-border))
+    )
+  );
+}
+
+[data-scope='switch'] [data-part='label'] {
+  color: var(--kanso-fg);
+  cursor: pointer;
+  /* The label points at the control, so clicking the text toggles it. */
+  user-select: none;
+}
+
+/*
+ * Disabled. Inactive controls are exempt from the contrast minimums (WCAG 2.2
+ * SC 1.4.3 and 1.4.11 both carve them out), which is why dimming is acceptable
+ * here and nowhere else.
+ */
+[data-scope='switch'] [data-part='control'][data-disabled],
+[data-scope='switch'] [data-part='label'][data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/*
+ * Read-only. Still focusable and still announced, so it must not be dimmed the
+ * way disabled is — it is a live control that happens to refuse writes.
+ */
+[data-scope='switch'] [data-part='control'][data-readonly] {
+  cursor: default;
+}

@@ -13,11 +13,20 @@ describe('normalizeProps (vue)', () => {
     expect(normalizeProps.label({ for: 'control-id' })).toEqual({ for: 'control-id' });
   });
 
-  it('lowercases event handler names so Vue binds the real DOM event', () => {
+  it('lowercases the tail of event names so Vue binds the real DOM event', () => {
+    // Vue hyphenates the part after `on`, so onKeyDown would bind `key-down`.
     const handler = () => {};
-    expect(normalizeProps.button({ onKeyDown: handler })).toEqual({ onkeydown: handler });
-    expect(normalizeProps.button({ onPointerDown: handler })).toEqual({ onpointerdown: handler });
-    expect(normalizeProps.button({ onClick: handler })).toEqual({ onclick: handler });
+    expect(normalizeProps.button({ onKeyDown: handler })).toEqual({ onKeydown: handler });
+    expect(normalizeProps.button({ onPointerDown: handler })).toEqual({ onPointerdown: handler });
+  });
+
+  it('keeps the first letter after `on` capitalised', () => {
+    // Vue only treats a prop as an event when it matches /^on[^a-z]/. Lowercase
+    // it entirely and Vue assigns el.onclick as a DOM property instead — which
+    // works on a fresh mount and vanishes on hydration. See docs/01 §4.
+    const handler = () => {};
+    expect(normalizeProps.button({ onClick: handler })).toEqual({ onClick: handler });
+    expect(Object.keys(normalizeProps.button({ onKeyDown: handler }))[0]).toMatch(/^on[^a-z]/);
   });
 
   it('leaves onUpdate:modelValue alone so v-model keeps working', () => {

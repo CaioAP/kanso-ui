@@ -29,6 +29,7 @@
     ".": "./dist/index.css",
     "./tokens": "./dist/tokens.css",
     "./base": "./dist/base.css",
+    "./switch": "./dist/switch.css",
     "./package.json": "./package.json"
   },
   "publishConfig": {

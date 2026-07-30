@@ -3,12 +3,18 @@
 Living status doc. **Update it as items land** — it is the fastest way for a new
 session to learn where things stand.
 
-**Status: Phase 0 done.** CI is green on `main`, the docs site is deployed, and
-`pnpm build` produces valid packages. No components exist yet — that is Phase 1,
-which starts with Switch and must not start with a second component.
+**Status: Phase 1 built, not yet published.** Switch exists in core, Vue and
+React, with 141 unit tests and 21 browser tests green, a full docs page, and the
+embed route live. Everything up to the publish step is done.
 
-One thing does **not** work yet and blocks Phase 1's publish step: the
-`NPM_TOKEN` is unusable in CI. Details under "Human tasks" below.
+**The one thing left in Phase 1 is publishing `0.0.1`,** which is a human
+decision — see "Human tasks". Nothing publishes until someone sets
+`RELEASE_ENABLED`, deliberately.
+
+Phase 1 found four real defects that the layer below it could not see. They are
+recorded in detail under Phase 1 because the pattern generalises: each was
+silent, each passed the tests that existed at the time, and each was caught by
+adding a *different kind* of test rather than more of the same kind.
 
 **Repo:** `/home/caio/Projects/kanso-ui` · **npm scope:** `@caioalfonso` (confirmed free)
 **Docs site:** https://kanso-ui.pages.dev · **GitHub:** `github.com/CaioAP/kanso-ui`
@@ -148,12 +154,13 @@ are identical, so the duplication cannot silently diverge.
 ### Human tasks (block Phase 1 publish)
 - [x] npm account created and authenticated. All four `@caioalfonso/kanso-*`
       names confirmed unpublished and free.
-- [ ] `NPM_TOKEN` needs replacing. The current one prompts for a one-time
-      password, which no CI job can answer (`npm error code EOTP`). npm has
-      retired the "automation" token type — the equivalent is a **granular
-      access token** with **Bypass 2FA** checked. See `docs/05` §9.
-- [ ] Set the `RELEASE_ENABLED` repository variable to `true` — **only** when
-      Phase 1 is ready to publish `0.0.1`.
+- [x] `NPM_TOKEN` replaced with a granular access token carrying **Bypass 2FA**
+      (npm retired the "automation" type). Set 2026-07-30.
+- [ ] Set the `RELEASE_ENABLED` repository variable to `true`. **This is the
+      remaining Phase 1 step.** Doing so publishes `0.0.1` on the next merge to
+      `main`, which is irreversible — npm never allows reusing a version number.
+      Everything else is ready: the changeset is written, the packages build
+      clean, and `publint`/`attw` pass.
 - [x] GitHub repo created and pushed — `github.com/CaioAP/kanso-ui`
 - [x] `main` protected, `verify` required to merge
 - [x] Cloudflare Pages project created — `kanso-ui.pages.dev`
@@ -161,22 +168,62 @@ are identical, so the duplication cannot silently diverge.
 ---
 
 ## Phase 1 — Switch (vertical slice) 🔑
-- [ ] Core: types, anatomy, state, connect
-- [ ] Core unit tests — every transition and guard
-- [ ] Vue adapter
-- [ ] React adapter
-- [ ] Tests both frameworks: render, click, Space, Enter, controlled, uncontrolled,
-      disabled, readOnly, axe
-- [ ] SSR test both frameworks, no hydration warning
-- [ ] `packages/styles/src/switch.css`
-- [ ] Docs page (full template)
-- [ ] `ComponentPreview`: framework toggle, knobs, Shiki source, copy
-- [ ] `/embed/switch`
-- [ ] Playwright + axe on the docs site
-- [ ] Changeset → **published `0.0.1`**
-- [ ] External install verified from a clean directory
+- [x] Core: types, anatomy, state, connect
+- [x] Core unit tests — every transition and guard (39)
+- [x] Vue adapter — `defineComponent` + `h()`, not an SFC (esbuild cannot
+      compile `.vue`; rationale in `docs/01` §8)
+- [x] React adapter
+- [x] Tests both frameworks: render, click, Space, Enter, controlled, uncontrolled,
+      disabled, readOnly, forms, axe — 68, deliberately mirrored so a behaviour
+      present in one adapter and missing in the other fails
+- [x] SSR test both frameworks, no hydration warning — spying on `console.error`,
+      because a mismatch is a logged warning and a test that only checks "did not
+      throw" passes vacuously
+- [x] `packages/styles/src/switch.css` + a clipped `hidden-input` primitive
+- [x] Docs page (full template)
+- [x] `ComponentPreview`: framework toggle, knobs, source, copy
+- [x] `/embed/switch`
+- [x] Playwright + axe on the docs site — 21 tests, wired into CI
+- [x] Changeset written
+- [ ] **Published `0.0.1`** — needs `RELEASE_ENABLED`, a human decision
+- [x] External install verified from a clean directory — real `pnpm pack`
+      tarballs installed with plain `npm` into a project outside the workspace,
+      so nothing could resolve through the monorepo. Barrel *and* `./switch`
+      subpath entries imported and server-rendered in both frameworks; types
+      resolve under both `bundler` and `node16`. The only thing left unproven is
+      the registry round-trip itself.
 - [ ] Portfolio: Sanity `project` document
 - [ ] Portfolio: playground entry + iframe embed
+
+### Defects Phase 1 found
+
+Each of these passed every test that existed when it was written.
+
+1. **Vue event names were wrong in a way only hydration exposes.** The Phase 0
+   normalizer lowercased handler names entirely (`onKeyDown` → `onkeydown`). Vue
+   only treats a prop as an event when it matches `/^on[^a-z]/`, so `onkeydown`
+   fell through to `el.onkeydown` as a DOM property — which *works* on a fresh
+   mount. Hydration only patches props Vue recognises as events, so a
+   server-rendered Switch hydrated with no click handler and was inert. Correct
+   fold is `on` + capital + lowercase tail (`onKeydown`). `docs/01` §4.
+2. **`readOnly` on the hidden input silently disabled `required`.** A checkbox
+   carrying `readonly` is barred from constraint validation — Chrome reports
+   `willValidate === false` — so `required` stopped blocking submission. Replaced
+   with a no-op `onChange`. Caught by Playwright; unreachable from jsdom.
+3. **The switch track failed WCAG 2.2 SC 2.5.8 target size** at 36×20 where
+   24×24 is the floor. Now 44×24. Invisible without layout.
+4. **`--kanso-line-strong` was below 3:1 against `--kanso-surface-sunk`** (2.87:1
+   in light). The token claimed ≥ 3:1 but had only ever been measured against
+   `bg` and `surface`. Corrected 64% → 62%; now clears every surface it can sit
+   on. Surfaced by adding the switch's colour pairs to `scripts/contrast.mjs`.
+
+### Measured, this phase
+- 141 unit tests (core 39 + adapters 68 + SSR 12 + normalizers 13 + attrs 6, in
+  4 Vitest projects), 21 Playwright tests, all green
+- 30 colour pairs measured across both themes, all passing
+- SSR gate verified by planting `Math.random()` in `switchIds` — both frameworks'
+  suites failed, 4 tests, then restored
+- `publint` + `attw` green on the new `./switch` subpath in all three JS packages
 
 ---
 
@@ -247,16 +294,26 @@ are identical, so the duplication cannot silently diverge.
       trusted publishing needs no stored credential — but it is configured per
       package on npmjs.com, so the package must exist first. `id-token: write` is
       already granted in `release.yml`.
-- [ ] `docs/01` §8 and `docs/03` §1 disagree on Switch: §8's `connect` has no
-      hidden `<input type="checkbox">`, but §1 requires one for form
-      participation, and `switchAnatomy` lists only `root · control · thumb ·
-      label`. Resolve at the top of Phase 1 — likely a `hiddenInput` part.
+- [x] ~~`docs/01` §8 and `docs/03` §1 disagree on Switch's hidden input.~~
+      Resolved at the top of Phase 1: `docs/03` won, `docs/01` §8 was amended,
+      and `hidden-input` is now a named part. §8 also carried two other defects,
+      both corrected there — an unconditional `aria-labelledby` that would dangle
+      when only `aria-label` is given, and a `focusVisible` state field that
+      cannot distinguish keyboard from pointer (CSS `:focus-visible` can).
 - [ ] `vitest-axe` has no stable release; pinned to `1.0.0-pre.5`, which is what
       works with Vitest 3. If it goes stale, `jest-axe` is the fallback
       (`docs/04` §5 already permits it).
-- [ ] All four packages ship `files: ["dist"]`, so no README and no LICENSE land
-      in the tarball and the npm page would be blank. Fix before Phase 1's
-      `0.0.1` publish — a per-package README is the npm landing page.
+- [x] ~~All four packages ship `files: ["dist"]`, so the npm page would be
+      blank.~~ Each package now has its own README and LICENSE; npm includes
+      both regardless of `files`.
 - [ ] Docs site domain — `kanso-ui.pages.dev` by default, custom domain undecided
-- [ ] Whether `ComponentPreview` reflects live knob state in the shown source, or
-      shows a static example (decide when building it in Phase 1)
+- [x] ~~Whether `ComponentPreview` reflects live knob state in the shown
+      source.~~ It shows the real example file, read at build time with `?raw`
+      so it cannot drift. Reflecting knob state would mean generating source,
+      which is exactly how a "copy this" block starts lying.
+- [ ] `ComponentPreview`'s framework toggle is a hand-rolled tablist. Rebuild it
+      on the library's own Tabs in Phase 2 — dogfooding is the point, and it
+      deletes the inline roving-tabindex script.
+- [ ] The `/e2e/switch-form` fixture page ships publicly (noindex, unlinked). It
+      exists because constraint validation needs a real form with a real
+      stylesheet. Acceptable, but worth revisiting if fixtures multiply.

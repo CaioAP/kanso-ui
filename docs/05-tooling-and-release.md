@@ -244,6 +244,21 @@ accidental-publish window closes permanently.
 npm does **not** allow reusing a version number, even after `npm unpublish`. A
 burned `0.0.0` is burned.
 
+### Pack with pnpm, never with npm
+
+The adapter packages depend on core as `"@caioalfonso/kanso-core": "workspace:^"`.
+**pnpm rewrites that to a real range when it packs**; `npm pack` does not — it
+copies the string through, and the resulting tarball fails to install with:
+
+```
+npm error code EUNSUPPORTEDPROTOCOL
+npm error Unsupported URL Type "workspace:": workspace:^
+```
+
+`changeset publish` shells out to the repo's package manager, so the real release
+path is safe. This only bites when packing by hand to inspect a tarball — which
+is exactly when you are least likely to notice the tarball is not what ships.
+
 **Versioning policy**
 
 - `0.x` while the API settles — through Phase 5.

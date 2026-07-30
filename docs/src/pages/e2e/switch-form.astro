@@ -1,0 +1,40 @@
+---
+/**
+ * A fixture for the Playwright suite, not a docs page.
+ *
+ * It exists because one Switch behaviour cannot be verified anywhere else: the
+ * hidden input must be *clipped* rather than `display: none`, since a control
+ * hidden by display is skipped by constraint validation and `required` would
+ * silently stop blocking submission. jsdom never loads the stylesheet, so the
+ * unit tests can only check the inline style — only a real browser with the
+ * real CSS applied can prove it.
+ *
+ * Unlinked and noindex. Kept under /e2e/ so it is obviously not documentation.
+ */
+import '@caioalfonso/kanso-styles';
+import { Switch } from '@caioalfonso/kanso-react';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>e2e fixture — Switch in a form</title>
+  </head>
+
+  <body>
+    <h1>Switch form fixture</h1>
+
+    {/* Submitting navigates to ?terms=... on success, which the test asserts. */}
+    <form method="get" action="/e2e/switch-form" data-testid="form">
+      <Switch label="Accept the terms" name="terms" required client:load />
+      <button type="submit">Submit</button>
+    </form>
+
+    <form method="get" action="/e2e/switch-form" data-testid="optional-form">
+      <Switch label="Email me" name="notify" client:load />
+      <button type="submit">Submit optional</button>
+    </form>
+  </body>
+</html>

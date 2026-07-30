@@ -97,20 +97,22 @@ changeset belongs to Phase 1's `0.0.1` publish.
 **The most important phase.** Not about Switch — about proving every layer connects.
 Resist adding a second component here, however easy it looks.
 
-- [ ] `core/src/switch/` — types, anatomy, state, connect (`docs/01` §8 has the code)
-- [ ] Core unit tests: every transition, every guard
-- [ ] Vue adapter + React adapter
-- [ ] Adapter tests both frameworks: render, click, `Space`, `Enter`, controlled,
+- [x] `core/src/switch/` — types, anatomy, state, connect (`docs/01` §8 has the code)
+- [x] Core unit tests: every transition, every guard
+- [x] Vue adapter + React adapter
+- [x] Adapter tests both frameworks: render, click, `Space`, `Enter`, controlled,
       uncontrolled, disabled, readOnly, axe
-- [ ] **SSR test both frameworks**, asserting no hydration warning — locks the id trap
-- [ ] `packages/styles/src/switch.css`, `data-part`/`data-state` selectors only
-- [ ] Docs page using the full template (`docs/06` §5)
-- [ ] `ComponentPreview` built: framework toggle, knobs, Shiki source, copy
-- [ ] `/embed/switch` route
-- [ ] Playwright + axe on the docs site
+- [x] **SSR test both frameworks**, asserting no hydration warning — locks the id trap
+- [x] `packages/styles/src/switch.css`, `data-part`/`data-state` selectors only
+- [x] Docs page using the full template (`docs/06` §5)
+- [x] `ComponentPreview` built: framework toggle, knobs, Shiki source, copy
+- [x] `/embed/switch` route
+- [x] Playwright + axe on the docs site
 - [ ] Changeset → **publish `0.0.1` to npm**
-- [ ] Verify from outside: fresh dir, `npm i @caioalfonso/kanso-react`, import,
-      render. This catches `exports` bugs the monorepo hides.
+- [x] Verify from outside: fresh dir, install, import, render. Done against real
+      `pnpm pack` tarballs rather than the registry, which catches the same
+      `exports` and `dependencies` bugs without needing a publish first. Repeat
+      against the registry once `0.0.1` is out.
 - [ ] Portfolio: create the Sanity `project` document (`docs/08`)
 - [ ] Portfolio: playground entry iframing `/embed/switch`
 

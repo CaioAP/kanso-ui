@@ -126,8 +126,8 @@ wrong **fails silently** — the attribute simply never reaches the DOM.
 |---|---|---|
 | `class` | `className` | `class` |
 | `for` | `htmlFor` | `for` |
-| `onKeyDown` | same | `onkeydown` |
-| `onClick` | same | `onclick` |
+| `onKeyDown` | same | `onKeydown` |
+| `onClick` | same | `onClick` |
 | `style` (object) | object | object |
 | `defaultValue` | same | n/a — Vue uses `value` |
 
@@ -154,25 +154,41 @@ export const normalizeProps = createNormalizer<ReactPropTypes>((props: Dict) => 
 ```
 
 Vue keeps `class` / `for` as written, drops `undefined` so its emitted attribute
-set matches React's exactly, and lowercases handler names:
+set matches React's exactly, and folds handler names to a single shape:
 
 ```ts
 // packages/vue/src/normalize-props.ts — the event branch
 if (key.startsWith('on') && key.length > 2 && !key.includes(':')) {
-  out[`on${key.slice(2).toLowerCase()}`] = value
+  // onKeyDown → onKeydown
+  out[`on${key.charAt(2).toUpperCase()}${key.slice(3).toLowerCase()}`] = value
   continue
 }
 ```
 
-The lowercasing is load-bearing. Vue derives the DOM event name by running the
+Both halves of that transform are load-bearing, and both failure modes are silent.
+
+**The tail must be lowercased.** Vue derives the DOM event name by running the
 part after `on` through `hyphenate`, so `onKeyDown` binds a listener for
-`key-down` — an event no browser fires, with no warning anywhere. `onUpdate:modelValue`
-is exempted: the colon marks it a component event, and lowercasing breaks `v-model`.
+`key-down` — an event no browser fires, with no warning anywhere.
+
+**The first letter must stay capitalised**, and this one cost a debugging
+session in Phase 1. Vue only recognises a prop as an event when it matches
+`/^on[^a-z]/`. A fully-lowercased `onclick` fails that test, so Vue falls
+through to its `key in el` check — which is true — and assigns `el.onclick` as
+a DOM property. **That works.** Clicks fire, tests pass, and nothing looks
+wrong. But hydration takes a different path: it only patches props Vue
+recognises as events, so a server-rendered component hydrates with *no handler
+at all* and is simply inert. Client-side tests cannot see this. The Phase 1 SSR
+test is what caught it.
+
+`onUpdate:modelValue` is exempted: the colon marks it a component event, and
+rewriting it breaks `v-model`.
 
 > Write `normalizeProps` once in Phase 0 and test it directly, including an
 > assertion that the props actually land on a rendered element. Every component
-> depends on it, so a bug here is a bug everywhere — and both failure modes are
-> silent.
+> depends on it, so a bug here is a bug everywhere — and every failure mode is
+> silent. Note that even that is not sufficient: the capitalisation bug above
+> passed a rendered-element test. Hydration is the only thing that catches it.
 
 ## 5. IDs — the SSR trap
 
@@ -258,13 +274,37 @@ docs site (to render the anatomy table) and by the stylesheet (to know which
 `data-part` values exist).
 
 ```ts
-export const switchAnatomy = ['root', 'control', 'thumb', 'label'] as const
+export const switchAnatomy = ['root', 'control', 'thumb', 'label', 'hidden-input'] as const
 export type SwitchPart = (typeof switchAnatomy)[number]
 ```
+
+`hidden-input` is a part even though it is never seen: the stylesheet has to
+visually hide it, and it cannot do that by guessing.
 
 ## 8. A worked example — Switch, end to end
 
 Enough detail to implement Phase 1 without further design decisions.
+
+> **Amended during Phase 1.** As first written, this section omitted the form
+> participation that `docs/03` §1 requires, and carried two defects. All three are
+> corrected below; the reasoning is recorded so the same mistakes are not
+> reintroduced in a later component.
+>
+> 1. **`hiddenInputProps` added.** `docs/03` §1 requires a visually-hidden
+>    `<input type="checkbox">` when `name` is set, so the switch works inside a
+>    plain `<form>`. That means `name`, `value` and `required` belong in state —
+>    inert as far as the reducer is concerned, but inputs to `connect`.
+> 2. **`aria-labelledby` is now conditional.** Emitting it unconditionally
+>    produces a *dangling* reference when the consumer passes `aria-label` and no
+>    `label`: the id points at an element that was never rendered. Screen readers
+>    then announce nothing, which is worse than the unlabelled control they would
+>    otherwise fall back to describing.
+> 3. **`focusVisible` removed**, along with the `FOCUS` and `BLUR` events. A
+>    `focus` event fires on mouse press as well as keyboard, so tracking it in
+>    state cannot distinguish the two without re-implementing the heuristic the
+>    platform already ships. `docs/02` §4 styles focus with the CSS
+>    `:focus-visible` pseudo-class, which gets it right for free. This is the same
+>    instinct as the "no keydown handler" note below — prefer the platform.
 
 ```ts
 // switch.types.ts
@@ -272,15 +312,19 @@ export interface SwitchState {
   checked: boolean
   disabled: boolean
   readOnly: boolean
-  focusVisible: boolean
+  required: boolean
+  /** Set to enable form participation; renders the hidden input. */
+  name?: string
+  /** Submitted value when checked. Defaults to "on", matching a native checkbox. */
+  value: string
+  /** Whether a rendered <label> element exists to point `aria-labelledby` at. */
+  hasLabel: boolean
   ids: ReturnType<typeof switchIds>
 }
 
 export type SwitchEvent =
   | { type: 'TOGGLE' }
   | { type: 'SET_CHECKED'; value: boolean }
-  | { type: 'FOCUS'; visible: boolean }
-  | { type: 'BLUR' }
 ```
 
 ```ts
@@ -292,15 +336,16 @@ export function switchReducer(state: SwitchState, event: SwitchEvent): SwitchSta
       return { ...state, checked: !state.checked }
     case 'SET_CHECKED':
       return state.checked === event.value ? state : { ...state, checked: event.value }
-    case 'FOCUS':
-      return { ...state, focusVisible: event.visible }
-    case 'BLUR':
-      return { ...state, focusVisible: false }
     default:
       return state
   }
 }
 ```
+
+`SET_CHECKED` deliberately does **not** guard on `disabled` / `readOnly`. Those
+guards describe what the *user* may do; `SET_CHECKED` is how a controlled
+consumer writes state, and a consumer must be able to set a disabled switch.
+`TOGGLE` is the user-driven event and guards accordingly.
 
 ```ts
 // switch.connect.ts
@@ -309,12 +354,12 @@ export function connectSwitch<T extends PropTypes>(
   send: (e: SwitchEvent) => void,
   normalize: NormalizeProps<T>,
 ) {
-  const { checked, disabled, readOnly, ids } = state
+  const { checked, disabled, readOnly, required, name, value, hasLabel, ids } = state
 
   return {
     checked,
     disabled,
-    setChecked: (value: boolean) => send({ type: 'SET_CHECKED', value }),
+    setChecked: (next: boolean) => send({ type: 'SET_CHECKED', value: next }),
 
     rootProps: normalize.element({
       // Root-only marker. The stylesheet scopes itself with `[data-kanso] [data-part=…]`,
@@ -334,12 +379,11 @@ export function connectSwitch<T extends PropTypes>(
       type: 'button',
       role: 'switch',
       'aria-checked': checked,
-      'aria-labelledby': ids.label,
+      // Conditional: a dangling idref is worse than none. See the amendment note.
+      'aria-labelledby': hasLabel ? ids.label : undefined,
       'aria-readonly': ariaAttr(readOnly),
       disabled,
       onClick: () => send({ type: 'TOGGLE' }),
-      onFocus: () => send({ type: 'FOCUS', visible: true }),
-      onBlur: () => send({ type: 'BLUR' }),
     }),
 
     thumbProps: normalize.element({
@@ -350,11 +394,57 @@ export function connectSwitch<T extends PropTypes>(
     labelProps: normalize.label({
       'data-part': 'label',
       id: ids.label,
+      // Points at the button, so clicking the text focuses and toggles it.
+      for: ids.control,
       'data-disabled': dataAttr(disabled),
+    }),
+
+    // Only rendered when `name` is set. See "The hidden input" below.
+    hiddenInputProps: normalize.input({
+      'data-part': 'hidden-input',
+      type: 'checkbox',
+      id: ids.hiddenInput,
+      name,
+      value,
+      checked,
+      required,
+      disabled,
+      // Mirrors state; never focused, never announced. The button is the control.
+      'aria-hidden': true,
+      tabIndex: -1,
+      onChange: () => {},
     }),
   }
 }
 ```
+
+### The hidden input
+
+Four properties of it are load-bearing, and each one is a real defect if missed:
+
+- **Rendered only when `name` is set.** Without a `name` it submits nothing, so it
+  would be a duplicate control for no benefit.
+- **`aria-hidden` and `tabIndex: -1`.** `role="switch"` lives on the button. An
+  input that is reachable or announced gives one switch two identities — a
+  keyboard user tabs twice and a screen reader reads it twice.
+- **Visually hidden, never `display: none` or the `hidden` attribute.** A
+  `display: none` checkbox is barred from constraint validation, so `required`
+  silently stops blocking submission. The stylesheet clips it instead.
+- **A no-op `onChange`, and never `readOnly`.** React warns about a `checked`
+  input with no `onChange`, so it needs one. `readOnly` looks like the tidier
+  answer — the input really is a read-only mirror — but a checkbox carrying
+  `readonly` is **barred from constraint validation**: Chrome reports
+  `willValidate === false`, and `required` stops blocking submission. That is
+  the same defect the clipping rule above prevents, reached by a different
+  route. The Phase 1 Playwright suite caught it; the handler is safe to be
+  empty because the input is inert by construction (`aria-hidden`, out of the
+  tab order, `pointer-events: none`).
+
+One caveat worth knowing: a `required` control that is visually hidden cannot be
+focused to show the browser's validation bubble, so Chrome blocks the submission
+and logs *"An invalid form control ... is not focusable"* without showing the
+user anything. Submission is correctly prevented, but supply your own message if
+the switch is genuinely required.
 
 Note what is **absent**: no `keydown` handler. A native `<button>` already fires
 `click` on Space and Enter. Reaching for `role="switch"` on a `<div>` and
@@ -375,7 +465,8 @@ export function Switch({ checked, defaultChecked, onCheckedChange, ...props }: S
   return (
     <span {...api.rootProps}>
       <button {...api.controlProps}><span {...api.thumbProps} /></button>
-      <label {...api.labelProps}>{props.label}</label>
+      {props.label ? <label {...api.labelProps}>{props.label}</label> : null}
+      {props.name ? <input {...api.hiddenInputProps} /> : null}
     </span>
   )
 }
@@ -383,23 +474,63 @@ export function Switch({ checked, defaultChecked, onCheckedChange, ...props }: S
 
 ### Vue adapter
 
-```vue
-<script setup lang="ts">
-const vueId = useId()
-const state = ref(initialSwitchState({ id: props.id ?? vueId, ... }))
-const send = (e: SwitchEvent) => { state.value = switchReducer(state.value, e) }
-const api = computed(() => connectSwitch(state.value, send, normalizeProps))
-</script>
+**Amended during Phase 1: a render function, not an SFC.** The packages are
+bundled with tsup, and esbuild cannot compile a `.vue` file. Adding a compiler
+step to ship template sugar would trade a plain ESM build and working `.d.ts`
+for syntax. `defineComponent` + `h()` needs no compiler and produces the same
+tree.
 
-<template>
-  <span v-bind="api.rootProps">
-    <button v-bind="api.controlProps"><span v-bind="api.thumbProps" /></button>
-    <label v-bind="api.labelProps">{{ label }}</label>
-  </span>
-</template>
+```ts
+export const Switch = defineComponent({
+  props: { modelValue: …, checked: …, defaultChecked: …, /* … */ },
+  emits: ['update:modelValue', 'checkedChange'],
+  inheritAttrs: false,
+  setup(props, { emit, attrs, slots }) {
+    const vueId = useId()
+    const uncontrolledChecked = ref(props.defaultChecked)
+    const checked = computed(() => props.checked ?? props.modelValue ?? uncontrolledChecked.value)
+    const state = computed(() => initialSwitchState({ id: props.id ?? vueId, checked: checked.value, … }))
+
+    const send = (event: SwitchEvent) => { /* same three lines as React */ }
+
+    return () => {
+      const api = connectSwitch(state.value, send, normalizeProps)
+      return h('span', { ...rootAttributes, ...api.rootProps }, [
+        h('button', api.controlProps, h('span', api.thumbProps)),
+        hasLabel.value ? h('label', api.labelProps, props.label) : null,
+        props.name ? h('input', api.hiddenInputProps) : null,
+      ])
+    }
+  },
+})
 ```
 
-The symmetry is the point. Both files are ~20 lines and contain no behaviour.
+`inheritAttrs: false` matters: left on, Vue applies fallthrough attrs to the root
+element, so a consumer's `aria-label` would land on the root — but `role="switch"`
+is on the button, and that is where the accessible name has to go. Both adapters
+therefore route `aria-label` / `aria-labelledby` to the control by hand and spread
+the rest onto the root.
+
+The symmetry is the point. Both files are short and contain no behaviour.
+
+**Derived state, not stored state.** Neither adapter keeps `SwitchState` in a
+`useReducer` / `ref`. They hold only the uncontrolled `checked` boolean and rebuild
+the state object on each render, because every other field is a prop, and a prop
+copied into state goes stale the moment the consumer changes it. `initialSwitchState`
+is pure and total, so calling it per render costs nothing. `send` runs the reducer,
+compares the result by reference, and reports only real transitions:
+
+```ts
+const send = (event: SwitchEvent) => {
+  const next = switchReducer(state, event)
+  if (next === state) return              // the reducer refused it — a disabled toggle
+  if (!isControlled) setUncontrolledChecked(next.checked)
+  onCheckedChange?.(next.checked)
+}
+```
+
+That reference comparison is why the reducer returns the same object when nothing
+changed: it is what keeps `onCheckedChange` from firing on a refused toggle.
 
 ## 9. Controlled vs uncontrolled
 

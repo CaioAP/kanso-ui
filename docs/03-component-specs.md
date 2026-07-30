@@ -32,7 +32,9 @@ a checkbox is usually submitted with a form. Deliberately the first component
 because the behaviour is trivial — Phase 1 is about proving the *pipeline*, not
 solving a hard interaction problem.
 
-**Anatomy:** `root` · `control` · `thumb` · `label`
+**Anatomy:** `root` · `control` · `thumb` · `label` · `hidden-input`
+
+`label` renders only when `label` is given; `hidden-input` only when `name` is.
 
 **Props**
 
@@ -61,11 +63,18 @@ Both keys come free from a native `<button>`. **Do not add a keydown handler.**
 **ARIA:** `role="switch"` on the control, `aria-checked`, `aria-labelledby` → label
 id, `aria-readonly` when read-only, native `disabled`.
 
+`aria-labelledby` is emitted **only when a `<label>` is actually rendered**. With
+`aria-label` and no `label`, the idref would dangle and the control would announce
+as nameless — see `docs/01` §8.
+
 **Non-colour state cue:** the thumb *moves*. Position, not colour, is the primary
 signal. Add a track border change as reinforcement.
 
 **Form participation:** render a visually-hidden `<input type="checkbox">` mirroring
-state when `name` is set, so the switch works inside a plain `<form>`.
+state when `name` is set, so the switch works inside a plain `<form>`. It carries
+`aria-hidden`, `tabindex="-1"` and `readonly`, and must be clipped rather than
+`display: none` — a hidden-by-display checkbox is skipped by constraint validation,
+which quietly disables `required`. Full rationale in `docs/01` §8.
 
 ---
 
