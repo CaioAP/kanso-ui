@@ -14,10 +14,17 @@ export default defineConfig({
       description:
         'Headless, accessible components for Vue 3 and React 19, built on one framework-agnostic core.',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CaioAP/kanso-ui' }],
+      // Starlight already flips data-theme on <html>, and the kanso tokens key
+      // off the same attribute — so the previews follow the site theme for free.
+      customCss: ['@caioalfonso/kanso-styles'],
       sidebar: [
         {
           label: 'Getting started',
           items: [{ label: 'Introduction', slug: 'getting-started/introduction' }],
+        },
+        {
+          label: 'Components',
+          items: [{ label: 'Switch', slug: 'components/switch' }],
         },
       ],
     }),

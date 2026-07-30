@@ -1,0 +1,200 @@
+---
+title: Switch
+description: A binary on/off control that takes effect immediately, with the behaviour shared between Vue 3 and React 19.
+---
+
+import { switchAnatomy } from '@caioalfonso/kanso-core';
+import ComponentPreview from '../../../components/ComponentPreview.astro';
+import SwitchPlayground from '../../../components/switch/SwitchPlayground.vue';
+import { SwitchPlaygroundReact } from '../../../components/switch/SwitchPlaygroundReact';
+import basicVue from '../../../examples/switch/SwitchBasic.vue?raw';
+import basicReact from '../../../examples/switch/SwitchBasic.tsx?raw';
+
+A binary on/off control. It takes effect **immediately** — flipping it does
+something right away.
+
+**Use a Checkbox instead** when the value is collected now and applied later, as
+part of a form the user submits. "Enable dark mode" is a switch. "I agree to the
+terms" is a checkbox. If your control sits next to a Save button, it is probably
+a checkbox.
+
+<ComponentPreview label="Switch" vueSource={basicVue} reactSource={basicReact}>
+  <SwitchPlayground slot="vue" client:visible />
+  <SwitchPlaygroundReact slot="react" client:visible />
+</ComponentPreview>
+
+The two panels above are different libraries rendering the same core. Every
+keyboard interaction, every ARIA attribute and every state transition comes from
+the same `@caioalfonso/kanso-core` code; only the rendering differs.
+
+## Installation
+
+```bash
+# React
+npm i @caioalfonso/kanso-react
+# Vue
+npm i @caioalfonso/kanso-vue
+```
+
+Import the component from its own entry point so the rest of the library is
+never bundled:
+
+```ts
+import { Switch } from '@caioalfonso/kanso-react/switch';
+```
+
+The stylesheet is optional. Without it you get a fully functional, entirely
+unstyled switch:
+
+```ts
+import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/switch';
+```
+
+## Anatomy
+
+<table>
+  <thead>
+    <tr>
+      <th>Part</th>
+      <th>Element</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>root</code></td>
+      <td><code>&lt;span&gt;</code></td>
+      <td>Carries <code>data-kanso</code> and <code>data-scope="switch"</code>. The only marked element.</td>
+    </tr>
+    <tr>
+      <td><code>control</code></td>
+      <td><code>&lt;button&gt;</code></td>
+      <td>The track. Holds <code>role="switch"</code> and every interaction.</td>
+    </tr>
+    <tr>
+      <td><code>thumb</code></td>
+      <td><code>&lt;span&gt;</code></td>
+      <td>Moves. Position is the primary state cue, not colour.</td>
+    </tr>
+    <tr>
+      <td><code>label</code></td>
+      <td><code>&lt;label&gt;</code></td>
+      <td>Rendered only when <code>label</code> is given.</td>
+    </tr>
+    <tr>
+      <td><code>hidden-input</code></td>
+      <td><code>&lt;input&gt;</code></td>
+      <td>Internal. Rendered only when <code>name</code> is set, for form submission.</td>
+    </tr>
+  </tbody>
+</table>
+
+Every part is addressable as `[data-part="…"]`, and stateful parts also carry
+`data-state="checked" | "unchecked"`. That is the whole styling contract — there
+are no class names to depend on.
+
+The list above comes from `switchAnatomy`, which the library exports:
+`{switchAnatomy.join(', ')}`.
+
+## Props
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `checked` | `boolean` | — | Controlled. Present ⇒ you own the value. |
+| `defaultChecked` | `boolean` | `false` | Uncontrolled initial value. |
+| `onCheckedChange` | `(checked: boolean) => void` | — | Fires in both modes. Vue emits `checkedChange`. |
+| `disabled` | `boolean` | `false` | Not focusable, not toggleable. |
+| `readOnly` | `boolean` | `false` | Focusable, announced, but refuses writes. |
+| `required` | `boolean` | `false` | Only meaningful with `name`. |
+| `name` | `string` | — | Set it to make the switch submit with a form. |
+| `value` | `string` | `'on'` | Submitted value when checked. |
+| `id` | `string` | auto | Lands on the root verbatim; other ids derive from it. |
+| `label` | `string` | — | Required for accessibility unless you pass `aria-label`. |
+
+Vue additionally supports `v-model`, which maps onto the same core events.
+
+## Keyboard
+
+| Key | Action |
+|---|---|
+| `Space` | Toggle |
+| `Enter` | Toggle |
+| `Tab` | Move focus to and from the switch |
+
+Both toggle keys come free from the native `<button>` underneath. The library
+adds **no** `keydown` handler — hand-rolling keyboard support for a control the
+platform already implements is how you end up with a switch that double-toggles.
+
+## Accessibility
+
+Follows the [APG switch pattern](https://www.w3.org/WAI/ARIA/apg/patterns/switch/).
+
+- `role="switch"` and `aria-checked` sit on the `<button>`, never on the root.
+- `aria-labelledby` points at the rendered `<label>` — and is **omitted entirely**
+  when no label is rendered. An idref pointing at an element that does not exist
+  leaves the control with no accessible name at all, which is worse than having
+  no attribute.
+- `readOnly` sets `aria-readonly` and keeps the control focusable. `disabled`
+  uses the native attribute rather than `aria-disabled`.
+- State is signalled by **position** first. The thumb moves; colour reinforces.
+  The switch is still readable in monochrome, and the track border is measured
+  at ≥ 3:1 against every surface it can sit on (WCAG 2.2 SC 1.4.11).
+- The focus ring is `:focus-visible` only — never on a mouse click, always on
+  keyboard.
+
+### Forms
+
+Set `name` and the switch renders a visually-hidden `<input type="checkbox">`
+that mirrors its state, so it works inside a plain `<form>` with no JavaScript
+on your side:
+
+```tsx
+<form action="/settings" method="post">
+  <Switch label="Email me" name="notify" defaultChecked />
+  <button type="submit">Save</button>
+</form>
+```
+
+That input is `aria-hidden` and out of the tab order, so it never becomes a
+second control. It is **clipped**, not `display: none` — a control hidden by
+display is skipped by constraint validation, which would silently disable
+`required`.
+
+## Examples
+
+### Controlled
+
+```tsx
+const [checked, setChecked] = useState(false);
+
+<Switch label="Wi-Fi" checked={checked} onCheckedChange={setChecked} />
+```
+
+### Read-only versus disabled
+
+```tsx
+{/* Focusable and announced. Communicates a value you are not allowed to change. */}
+<Switch label="Managed by your administrator" readOnly checked />
+
+{/* Removed from the tab order entirely. */}
+<Switch label="Unavailable" disabled />
+```
+
+Prefer `readOnly` when the value carries information. A `disabled` control is
+skipped by screen reader users navigating by form field, so its state may never
+be announced at all.
+
+### Unstyled
+
+The library ships no styles unless you import them. Skip the stylesheet and
+target the data attributes yourself:
+
+```css
+[data-scope='switch'] [data-part='control'] {
+  /* your track */
+}
+[data-scope='switch'] [data-part='thumb'][data-state='checked'] {
+  /* your checked thumb */
+}
+```
