@@ -11,10 +11,16 @@
  */
 
 [data-kanso][data-scope='switch'] {
-  --kanso-switch-track-w: 2.25rem;
-  --kanso-switch-track-h: 1.25rem;
-  --kanso-switch-thumb: 0.875rem;
-  --kanso-switch-pad: 2px;
+  /*
+   * The track is the click target, so it is 44x24 rather than the smaller size
+   * the design would otherwise want: WCAG 2.2 SC 2.5.8 requires 24x24 CSS
+   * pixels, and axe flagged an earlier 36x20 track as a real failure. Overriding
+   * these below 24px reintroduces that failure.
+   */
+  --kanso-switch-track-w: 2.75rem;
+  --kanso-switch-track-h: 1.5rem;
+  --kanso-switch-thumb: 1rem;
+  --kanso-switch-pad: 3px;
 
   display: inline-flex;
   align-items: center;

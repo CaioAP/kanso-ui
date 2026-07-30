@@ -154,9 +154,13 @@ describe('connectSwitch — the hidden input', () => {
     expect(a.hiddenInputProps.tabIndex).toBe(-1);
   });
 
-  it('is readOnly, so React does not warn about a checked input', () => {
-    expect(api({ name: 'notify' }).hiddenInputProps.readOnly).toBe(true);
-    expect(api({ name: 'notify' }).hiddenInputProps.onChange).toBeUndefined();
+  it('carries a no-op onChange, and is never readOnly', () => {
+    // React warns about a `checked` input with no onChange. readOnly would also
+    // silence it, but a checkbox with `readonly` is barred from constraint
+    // validation, which silently disables `required`.
+    const props = api({ name: 'notify' }).hiddenInputProps;
+    expect(typeof props.onChange).toBe('function');
+    expect(props.readOnly).toBeUndefined();
   });
 
   it('carries required and disabled through for constraint validation', () => {

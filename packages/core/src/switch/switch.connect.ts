@@ -94,10 +94,18 @@ export function connectSwitch<T extends PropTypes>(
       // would give one switch two identities: two tab stops, two announcements.
       'aria-hidden': true,
       tabIndex: -1,
-      // React warns on a `checked` input with no `onChange`. readOnly is the
-      // honest fix rather than a no-op handler — this genuinely is a read-only
-      // mirror of state, and the button owns every mutation.
-      readOnly: true,
+      // React warns on a `checked` input with no `onChange`, so it needs one.
+      //
+      // It must NOT be `readOnly` instead: a checkbox carrying `readonly` is
+      // barred from constraint validation (`willValidate === false` in Chrome),
+      // which silently disables `required` — the exact failure the clipping
+      // rule in base.css exists to prevent, arriving by a different route.
+      // Measured, not assumed; see the Playwright form tests.
+      //
+      // The handler is a no-op because the input is inert by construction:
+      // aria-hidden, out of the tab order, and pointer-events: none. Nothing
+      // can reach it to fire this.
+      onChange: () => {},
     }),
   };
 }

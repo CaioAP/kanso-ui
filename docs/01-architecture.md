@@ -412,7 +412,7 @@ export function connectSwitch<T extends PropTypes>(
       // Mirrors state; never focused, never announced. The button is the control.
       'aria-hidden': true,
       tabIndex: -1,
-      readOnly: true,
+      onChange: () => {},
     }),
   }
 }
@@ -430,9 +430,21 @@ Four properties of it are load-bearing, and each one is a real defect if missed:
 - **Visually hidden, never `display: none` or the `hidden` attribute.** A
   `display: none` checkbox is barred from constraint validation, so `required`
   silently stops blocking submission. The stylesheet clips it instead.
-- **`readOnly: true`.** React warns about a `checked` input with no `onChange`
-  handler. `readOnly` is the honest fix rather than a no-op handler: the input
-  genuinely is a read-only mirror of state, and the button owns every mutation.
+- **A no-op `onChange`, and never `readOnly`.** React warns about a `checked`
+  input with no `onChange`, so it needs one. `readOnly` looks like the tidier
+  answer — the input really is a read-only mirror — but a checkbox carrying
+  `readonly` is **barred from constraint validation**: Chrome reports
+  `willValidate === false`, and `required` stops blocking submission. That is
+  the same defect the clipping rule above prevents, reached by a different
+  route. The Phase 1 Playwright suite caught it; the handler is safe to be
+  empty because the input is inert by construction (`aria-hidden`, out of the
+  tab order, `pointer-events: none`).
+
+One caveat worth knowing: a `required` control that is visually hidden cannot be
+focused to show the browser's validation bubble, so Chrome blocks the submission
+and logs *"An invalid form control ... is not focusable"* without showing the
+user anything. Submission is correctly prevented, but supply your own message if
+the switch is genuinely required.
 
 Note what is **absent**: no `keydown` handler. A native `<button>` already fires
 `click` on Space and Enter. Reaching for `role="switch"` on a `<div>` and

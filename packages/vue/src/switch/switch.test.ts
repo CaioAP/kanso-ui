@@ -294,6 +294,9 @@ describe('Switch — form participation', () => {
     expect(input.required).toBe(true);
     expect(input).not.toHaveAttribute('hidden');
     expect(input.style.display).not.toBe('none');
+    // `readonly` on a checkbox bars it from constraint validation too, which
+    // would disable `required` just as effectively.
+    expect(input.readOnly).toBe(false);
   });
 });
 

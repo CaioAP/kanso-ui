@@ -272,6 +272,10 @@ describe('Switch — form participation', () => {
     expect(input).toHaveAttribute('required');
     expect(input).not.toHaveAttribute('hidden');
     expect(input.style.display).not.toBe('none');
+    // `readonly` on a checkbox bars it from constraint validation too, which
+    // would disable `required` just as effectively. Verified in the Playwright
+    // form tests, where a real browser is available to check willValidate.
+    expect(input).not.toHaveAttribute('readonly');
   });
 
   it('does not warn about a checked input with no onChange', () => {
