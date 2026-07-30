@@ -1,6 +1,6 @@
 {
   "name": "@caioalfonso/kanso-vue",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Vue 3 adapter for kanso-ui — reactivity and rendering over the framework-agnostic core.",
   "license": "MIT",
   "author": "Caio Alfonso",
