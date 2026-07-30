@@ -1,8 +1,11 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
+  // One entry per component, plus the barrel. This is what lets a consumer who
+  // imports Switch avoid pulling in every other component. See docs/01 §10.
   entry: {
     index: 'src/index.ts',
+    switch: 'src/switch/index.ts',
   },
   format: ['esm'],
   dts: true,

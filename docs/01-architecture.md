@@ -258,13 +258,37 @@ docs site (to render the anatomy table) and by the stylesheet (to know which
 `data-part` values exist).
 
 ```ts
-export const switchAnatomy = ['root', 'control', 'thumb', 'label'] as const
+export const switchAnatomy = ['root', 'control', 'thumb', 'label', 'hidden-input'] as const
 export type SwitchPart = (typeof switchAnatomy)[number]
 ```
+
+`hidden-input` is a part even though it is never seen: the stylesheet has to
+visually hide it, and it cannot do that by guessing.
 
 ## 8. A worked example — Switch, end to end
 
 Enough detail to implement Phase 1 without further design decisions.
+
+> **Amended during Phase 1.** As first written, this section omitted the form
+> participation that `docs/03` §1 requires, and carried two defects. All three are
+> corrected below; the reasoning is recorded so the same mistakes are not
+> reintroduced in a later component.
+>
+> 1. **`hiddenInputProps` added.** `docs/03` §1 requires a visually-hidden
+>    `<input type="checkbox">` when `name` is set, so the switch works inside a
+>    plain `<form>`. That means `name`, `value` and `required` belong in state —
+>    inert as far as the reducer is concerned, but inputs to `connect`.
+> 2. **`aria-labelledby` is now conditional.** Emitting it unconditionally
+>    produces a *dangling* reference when the consumer passes `aria-label` and no
+>    `label`: the id points at an element that was never rendered. Screen readers
+>    then announce nothing, which is worse than the unlabelled control they would
+>    otherwise fall back to describing.
+> 3. **`focusVisible` removed**, along with the `FOCUS` and `BLUR` events. A
+>    `focus` event fires on mouse press as well as keyboard, so tracking it in
+>    state cannot distinguish the two without re-implementing the heuristic the
+>    platform already ships. `docs/02` §4 styles focus with the CSS
+>    `:focus-visible` pseudo-class, which gets it right for free. This is the same
+>    instinct as the "no keydown handler" note below — prefer the platform.
 
 ```ts
 // switch.types.ts
@@ -272,15 +296,19 @@ export interface SwitchState {
   checked: boolean
   disabled: boolean
   readOnly: boolean
-  focusVisible: boolean
+  required: boolean
+  /** Set to enable form participation; renders the hidden input. */
+  name?: string
+  /** Submitted value when checked. Defaults to "on", matching a native checkbox. */
+  value: string
+  /** Whether a rendered <label> element exists to point `aria-labelledby` at. */
+  hasLabel: boolean
   ids: ReturnType<typeof switchIds>
 }
 
 export type SwitchEvent =
   | { type: 'TOGGLE' }
   | { type: 'SET_CHECKED'; value: boolean }
-  | { type: 'FOCUS'; visible: boolean }
-  | { type: 'BLUR' }
 ```
 
 ```ts
@@ -292,15 +320,16 @@ export function switchReducer(state: SwitchState, event: SwitchEvent): SwitchSta
       return { ...state, checked: !state.checked }
     case 'SET_CHECKED':
       return state.checked === event.value ? state : { ...state, checked: event.value }
-    case 'FOCUS':
-      return { ...state, focusVisible: event.visible }
-    case 'BLUR':
-      return { ...state, focusVisible: false }
     default:
       return state
   }
 }
 ```
+
+`SET_CHECKED` deliberately does **not** guard on `disabled` / `readOnly`. Those
+guards describe what the *user* may do; `SET_CHECKED` is how a controlled
+consumer writes state, and a consumer must be able to set a disabled switch.
+`TOGGLE` is the user-driven event and guards accordingly.
 
 ```ts
 // switch.connect.ts
@@ -309,12 +338,12 @@ export function connectSwitch<T extends PropTypes>(
   send: (e: SwitchEvent) => void,
   normalize: NormalizeProps<T>,
 ) {
-  const { checked, disabled, readOnly, ids } = state
+  const { checked, disabled, readOnly, required, name, value, hasLabel, ids } = state
 
   return {
     checked,
     disabled,
-    setChecked: (value: boolean) => send({ type: 'SET_CHECKED', value }),
+    setChecked: (next: boolean) => send({ type: 'SET_CHECKED', value: next }),
 
     rootProps: normalize.element({
       // Root-only marker. The stylesheet scopes itself with `[data-kanso] [data-part=…]`,
@@ -334,12 +363,11 @@ export function connectSwitch<T extends PropTypes>(
       type: 'button',
       role: 'switch',
       'aria-checked': checked,
-      'aria-labelledby': ids.label,
+      // Conditional: a dangling idref is worse than none. See the amendment note.
+      'aria-labelledby': hasLabel ? ids.label : undefined,
       'aria-readonly': ariaAttr(readOnly),
       disabled,
       onClick: () => send({ type: 'TOGGLE' }),
-      onFocus: () => send({ type: 'FOCUS', visible: true }),
-      onBlur: () => send({ type: 'BLUR' }),
     }),
 
     thumbProps: normalize.element({
@@ -350,11 +378,45 @@ export function connectSwitch<T extends PropTypes>(
     labelProps: normalize.label({
       'data-part': 'label',
       id: ids.label,
+      // Points at the button, so clicking the text focuses and toggles it.
+      for: ids.control,
       'data-disabled': dataAttr(disabled),
+    }),
+
+    // Only rendered when `name` is set. See "The hidden input" below.
+    hiddenInputProps: normalize.input({
+      'data-part': 'hidden-input',
+      type: 'checkbox',
+      id: ids.hiddenInput,
+      name,
+      value,
+      checked,
+      required,
+      disabled,
+      // Mirrors state; never focused, never announced. The button is the control.
+      'aria-hidden': true,
+      tabIndex: -1,
+      readOnly: true,
     }),
   }
 }
 ```
+
+### The hidden input
+
+Four properties of it are load-bearing, and each one is a real defect if missed:
+
+- **Rendered only when `name` is set.** Without a `name` it submits nothing, so it
+  would be a duplicate control for no benefit.
+- **`aria-hidden` and `tabIndex: -1`.** `role="switch"` lives on the button. An
+  input that is reachable or announced gives one switch two identities — a
+  keyboard user tabs twice and a screen reader reads it twice.
+- **Visually hidden, never `display: none` or the `hidden` attribute.** A
+  `display: none` checkbox is barred from constraint validation, so `required`
+  silently stops blocking submission. The stylesheet clips it instead.
+- **`readOnly: true`.** React warns about a `checked` input with no `onChange`
+  handler. `readOnly` is the honest fix rather than a no-op handler: the input
+  genuinely is a read-only mirror of state, and the button owns every mutation.
 
 Note what is **absent**: no `keydown` handler. A native `<button>` already fires
 `click` on Space and Enter. Reaching for `role="switch"` on a `<div>` and
@@ -375,7 +437,8 @@ export function Switch({ checked, defaultChecked, onCheckedChange, ...props }: S
   return (
     <span {...api.rootProps}>
       <button {...api.controlProps}><span {...api.thumbProps} /></button>
-      <label {...api.labelProps}>{props.label}</label>
+      {props.label ? <label {...api.labelProps}>{props.label}</label> : null}
+      {props.name ? <input {...api.hiddenInputProps} /> : null}
     </span>
   )
 }
@@ -394,7 +457,8 @@ const api = computed(() => connectSwitch(state.value, send, normalizeProps))
 <template>
   <span v-bind="api.rootProps">
     <button v-bind="api.controlProps"><span v-bind="api.thumbProps" /></button>
-    <label v-bind="api.labelProps">{{ label }}</label>
+    <label v-if="label" v-bind="api.labelProps">{{ label }}</label>
+    <input v-if="name" v-bind="api.hiddenInputProps">
   </span>
 </template>
 ```
