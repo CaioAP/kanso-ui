@@ -5,11 +5,11 @@ framework-agnostic core.
 
 > *Kanso* (簡素) — simplicity through the elimination of clutter.
 
-**Status: Phase 0 complete.** The workspace, build, test and CI rails are in
-place and the [docs site](https://kanso-ui.pages.dev) is deployed; no components
-are implemented yet. Switch lands in Phase 1. See
-[`docs/07-roadmap.md`](docs/07-roadmap.md) for the build plan and
-[`docs/09-progress-checklist.md`](docs/09-progress-checklist.md) for current state.
+**Status: Phase 1 built, `0.0.1` not yet published.** [Switch](https://kanso-ui.pages.dev/components/switch/)
+is complete in Vue and React from one shared core, with 141 unit tests and 21
+browser tests. Tabs is next. See [`docs/07-roadmap.md`](docs/07-roadmap.md) for
+the build plan and [`docs/09-progress-checklist.md`](docs/09-progress-checklist.md)
+for current state.
 
 ## The idea
 
