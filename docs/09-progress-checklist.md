@@ -3,14 +3,15 @@
 Living status doc. **Update it as items land** — it is the fastest way for a new
 session to learn where things stand.
 
-**Status: Phase 0 rails built, not yet signed off.** Every gate passes locally,
-including `pnpm install --frozen-lockfile`. Two definition-of-done items are
-still open: **CI has never run** (the workflow files are unverified until a push
-proves them), and the docs site is not deployed. No components exist yet — that
-is Phase 1.
+**Status: Phase 0 done.** CI is green on `main`, the docs site is deployed, and
+`pnpm build` produces valid packages. No components exist yet — that is Phase 1,
+which starts with Switch and must not start with a second component.
 
-**Repo:** `/home/caio/Projects/kanso-ui` · **npm scope:** `@caioalfonso` (unconfirmed)
-**Docs site:** builds locally, not deployed · **GitHub:** `github.com/CaioAP/kanso-ui`
+One thing does **not** work yet and blocks Phase 1's publish step: the
+`NPM_TOKEN` is unusable in CI. Details under "Human tasks" below.
+
+**Repo:** `/home/caio/Projects/kanso-ui` · **npm scope:** `@caioalfonso` (confirmed free)
+**Docs site:** https://kanso-ui.pages.dev · **GitHub:** `github.com/CaioAP/kanso-ui`
 
 **Toolchain as installed:** Node 24.14.0 · pnpm 10.30.3 · TypeScript 5.9.3 ·
 Vitest 3.2.7 · Biome 2.5.6 · tsup 8.5.1 · Astro 7.1.5 · Starlight 0.41.5
@@ -37,10 +38,20 @@ Vitest 3.2.7 · Biome 2.5.6 · tsup 8.5.1 · Astro 7.1.5 · Starlight 0.41.5
 ### CI/CD
 - [x] `ci.yml` written — lint, typecheck, core-purity, contrast, test, build,
       core-purity again over `dist`, package-lint, docs build
-- [x] `release.yml` written — changesets publish
-- [ ] **CI observed green on a real run.** Both workflow files are unexecuted:
-      no action version, no `node-version-file: .nvmrc` parse, no
-      `changesets/action` block has run once. Push, then tick this.
+- [x] `release.yml` written — changesets publish, gated on a `RELEASE_ENABLED`
+      repository variable until Phase 1
+- [x] **CI observed green on a real run** — PR #1 (45s) and the merge to `main`
+      (42s). Every step executed.
+- [x] `release.yml` observed running. It **failed, and finding out why was the
+      point.** The changesets action attempted to publish `0.0.0` to npm on an
+      ordinary merge, because its publish step runs whenever no changesets are
+      pending and the packages were absent from the registry. Only a 2FA prompt
+      on the token stopped it. A working token would have burned `0.0.0`
+      permanently — npm never allows reusing a version. Job is now gated; see
+      `docs/05` §8.
+- [x] `main` protected — `verify` required and strict, no force-push, no
+      deletion, conversation resolution required, admins not enforced (solo
+      maintainer)
 - [x] **Core-purity check verified to actually fail on a planted violation** —
       probe used a type-only `import type ... from 'vue'`, a bare `import 'react'`
       and a dynamic `import('react-dom')`; all three were caught, exit 1
@@ -130,16 +141,22 @@ are identical, so the duplication cannot silently diverge.
 - [x] Starlight scaffolded with `@astrojs/vue` **and** `@astrojs/react`
 - [x] Both islands verified to build and hydrate on one page
       (`/embed/islands`, a Phase 0 scaffold check replaced in Phase 1)
-- [ ] Deployed to Cloudflare Pages (Pages flow, no adapter)
+- [x] Deployed to Cloudflare Pages (Pages flow, no adapter) —
+      https://kanso-ui.pages.dev. Verified live: all three routes return 200 and
+      `/embed/islands` serves both the Vue and the React bundle.
 
 ### Human tasks (block Phase 1 publish)
-- [ ] `npm adduser`, 2FA on, **confirm the `@caioalfonso` scope is available**
-- [ ] npm automation token → `NPM_TOKEN` GitHub secret
+- [x] npm account created and authenticated. All four `@caioalfonso/kanso-*`
+      names confirmed unpublished and free.
+- [ ] `NPM_TOKEN` needs replacing. The current one prompts for a one-time
+      password, which no CI job can answer (`npm error code EOTP`). npm has
+      retired the "automation" token type — the equivalent is a **granular
+      access token** with **Bypass 2FA** checked. See `docs/05` §9.
+- [ ] Set the `RELEASE_ENABLED` repository variable to `true` — **only** when
+      Phase 1 is ready to publish `0.0.1`.
 - [x] GitHub repo created and pushed — `github.com/CaioAP/kanso-ui`
-- [ ] `main` protected, CI required to merge
-- [ ] Cloudflare Pages project created (**Pages**, not Workers)
-      — build command `pnpm install && pnpm build && pnpm --filter docs build`,
-      output directory `docs/dist`
+- [x] `main` protected, `verify` required to merge
+- [x] Cloudflare Pages project created — `kanso-ui.pages.dev`
 
 ---
 
@@ -225,7 +242,11 @@ are identical, so the duplication cannot silently diverge.
 ---
 
 ## Open questions / decisions pending
-- [ ] npm scope `@caioalfonso` availability — unverified, confirm at `npm adduser`
+- [ ] Move CI publishing to npm **trusted publishing** (OIDC) once `0.0.1` is
+      out. 2FA-bypassing tokens are being deprecated for direct publishing, and
+      trusted publishing needs no stored credential — but it is configured per
+      package on npmjs.com, so the package must exist first. `id-token: write` is
+      already granted in `release.yml`.
 - [ ] `docs/01` §8 and `docs/03` §1 disagree on Switch: §8's `connect` has no
       hidden `<input type="checkbox">`, but §1 requires one for form
       participation, and `switchAnatomy` lists only `root · control · thumb ·

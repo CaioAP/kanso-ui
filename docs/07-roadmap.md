@@ -32,7 +32,7 @@ are additive. Cut from the end, never leave the middle unfinished.
 
 ---
 
-## Phase 0 — Foundations
+## Phase 0 — Foundations ✅
 
 Rails only. Nothing user-visible.
 
@@ -53,7 +53,7 @@ Rails only. Nothing user-visible.
 - [x] `LICENSE` (MIT), `README.md`, `.gitignore`, `.nvmrc`
 - [x] Starlight site scaffolded in `docs/`, both Vue and React integrations
       registered, both islands verified to build on one page
-- [ ] Docs site deployed to Cloudflare Pages — *blocked on the human task below*
+- [x] Docs site deployed to Cloudflare Pages — https://kanso-ui.pages.dev
 - [x] **Verify the token contrast ratios in `docs/02` §3** and correct the values.
       Measured numbers recorded in `docs/09`; `pnpm contrast` is now a CI gate.
 - [x] `core/src/types.ts` — `PropTypes`, `NormalizeProps`, `Dict`
@@ -61,11 +61,15 @@ Rails only. Nothing user-visible.
 - [x] `normalizeProps` in both adapters, **with unit tests**
 
 **Human tasks (block Phase 1's publish step):**
-- [ ] `npm adduser` → confirm the `@caioalfonso` scope, enable 2FA
-- [ ] Create the npm automation token → `NPM_TOKEN` GitHub secret
+- [x] `npm adduser` → the `@caioalfonso` scope is free, all four names unpublished
+- [ ] Replace `NPM_TOKEN` — the current one prompts for a one-time password,
+      which no CI job can answer. npm retired the "automation" type; use a
+      granular access token with **Bypass 2FA** checked (`docs/05` §9)
+- [ ] Set the `RELEASE_ENABLED` repository variable, but **only** when Phase 1 is
+      ready to publish `0.0.1` (`docs/05` §8 explains the guard)
 - [x] Create the GitHub repo, push — `github.com/CaioAP/kanso-ui`
-- [ ] Set `main` protected, requiring CI
-- [ ] Create the Cloudflare Pages project (Pages flow — **not** Workers)
+- [x] Set `main` protected, requiring the `verify` check
+- [x] Create the Cloudflare Pages project (Pages flow — **not** Workers)
 
 **Done when:** CI is green on an empty repo, the docs site is deployed, and
 `pnpm build` produces valid (if empty) packages.
@@ -74,10 +78,14 @@ Rails only. Nothing user-visible.
 `contrast`, `test`, `build`, `package-lint`, docs build) and
 `pnpm install --frozen-lockfile` succeeds, which is what CI runs first.
 
-**Two DoD items remain open.** The workflow files have never executed — a green
-CI run needs a push. And the Cloudflare Pages deploy is human-gated. Do not mark
-Phase 0 done on a local gate run; "the pipeline works on my machine" is exactly
-the claim this phase exists to disprove.
+**Met.** CI ran green on PR #1 and on the merge to `main`, and the docs site is
+deployed and serving both framework islands.
+
+Pushing also caught a bug no local gate could have: `release.yml` tried to
+publish `0.0.0` to npm on an ordinary merge, and was stopped only by a 2FA
+prompt. The job is now gated behind `RELEASE_ENABLED`. See `docs/05` §8 — this is
+the concrete argument for why "the pipeline works on my machine" is not the
+definition of done.
 
 No changeset yet — the packages are unpublished at `0.0.0`, so the first
 changeset belongs to Phase 1's `0.0.1` publish.

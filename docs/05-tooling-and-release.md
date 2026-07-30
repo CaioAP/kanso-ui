@@ -224,6 +224,26 @@ Flow:
     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
+### The publish trap, found the hard way
+
+**Step 2 above is not conditional on a changeset existing.** The action runs its
+publish step whenever no changesets are pending — which is exactly the state
+after a Version Packages PR merges, but is indistinguishable from *no changeset
+was ever written*. With packages at `0.0.0` and absent from the registry, npm
+treats that as a real version and accepts it.
+
+So an ordinary merge with no changeset publishes whatever version is in
+`package.json`. The first run of this workflow did exactly that and was stopped
+only by a 2FA prompt on the token.
+
+The job is therefore gated on a `RELEASE_ENABLED` repository variable, which
+stays unset until Phase 1 ships `0.0.1` on purpose. After that the guard can be
+removed: once a version is on the registry, npm rejects republishing it, so the
+accidental-publish window closes permanently.
+
+npm does **not** allow reusing a version number, even after `npm unpublish`. A
+burned `0.0.0` is burned.
+
 **Versioning policy**
 
 - `0.x` while the API settles — through Phase 5.
@@ -251,9 +271,20 @@ Scoped packages default to **restricted**. Every package needs:
 
 Forgetting this is the classic first-publish failure.
 
-For CI publishing, create an **automation** token (bypasses 2FA) and store it as
-the `NPM_TOKEN` repository secret. Never commit it, never put it in `.npmrc` in
-the repo.
+For CI publishing, npm no longer offers an "automation" token type. The
+equivalent is a **granular access token** with **Bypass two-factor
+authentication (2FA)** checked, `Read and write` on packages, and the IP-range
+field left empty — GitHub runners rotate addresses, so any range breaks CI.
+Store it as the `NPM_TOKEN` repository secret. Never commit it, never put it in
+an `.npmrc` in the repo.
+
+npm is deprecating 2FA-bypassing tokens for direct publishing. The replacement is
+**trusted publishing** (OIDC), which needs no long-lived credential at all — the
+`id-token: write` permission is already set in `release.yml` for it. Trusted
+publishing has to be configured per package on npmjs.com, which requires the
+package to exist, so the sequence is: publish `0.0.1` by hand from a local
+authenticated session, then configure trusted publishing for every subsequent
+release and delete the token.
 
 > **Unverified:** at the time these docs were written, the account did not exist and
 > npm's user endpoint requires auth, so `caioalfonso` could not be confirmed
