@@ -186,7 +186,12 @@ are identical, so the duplication cannot silently diverge.
 - [x] Playwright + axe on the docs site — 21 tests, wired into CI
 - [x] Changeset written
 - [ ] **Published `0.0.1`** — needs `RELEASE_ENABLED`, a human decision
-- [ ] External install verified from a clean directory
+- [x] External install verified from a clean directory — real `pnpm pack`
+      tarballs installed with plain `npm` into a project outside the workspace,
+      so nothing could resolve through the monorepo. Barrel *and* `./switch`
+      subpath entries imported and server-rendered in both frameworks; types
+      resolve under both `bundler` and `node16`. The only thing left unproven is
+      the registry round-trip itself.
 - [ ] Portfolio: Sanity `project` document
 - [ ] Portfolio: playground entry + iframe embed
 

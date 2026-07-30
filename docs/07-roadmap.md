@@ -109,8 +109,10 @@ Resist adding a second component here, however easy it looks.
 - [x] `/embed/switch` route
 - [x] Playwright + axe on the docs site
 - [ ] Changeset → **publish `0.0.1` to npm**
-- [ ] Verify from outside: fresh dir, `npm i @caioalfonso/kanso-react`, import,
-      render. This catches `exports` bugs the monorepo hides.
+- [x] Verify from outside: fresh dir, install, import, render. Done against real
+      `pnpm pack` tarballs rather than the registry, which catches the same
+      `exports` and `dependencies` bugs without needing a publish first. Repeat
+      against the registry once `0.0.1` is out.
 - [ ] Portfolio: create the Sanity `project` document (`docs/08`)
 - [ ] Portfolio: playground entry iframing `/embed/switch`
 
