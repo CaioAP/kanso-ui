@@ -22,11 +22,12 @@
    * structure — two tokens, and the difference is an accessibility rule, not a
    * shade preference. --kanso-line is a decorative hairline and is deliberately
    * below 3:1. Any border that is the only indicator of a state must use
-   * --kanso-line-strong, which is measured at >= 3:1 against bg and surface
-   * (WCAG 2.2 SC 1.4.11). Run `pnpm contrast` after changing either.
+   * --kanso-line-strong, which is measured at >= 3:1 against every surface it
+   * can sit on — bg, surface and surface-sunk (WCAG 2.2 SC 1.4.11).
+   * Run `pnpm contrast` after changing either.
    */
   --kanso-line: oklch(88% 0.004 95);
-  --kanso-line-strong: oklch(64% 0.005 95);
+  --kanso-line-strong: oklch(62% 0.005 95);
 
   /* accent — restrained indigo, deliberately not the portfolio's vermilion */
   --kanso-accent: oklch(52% 0.13 258);
