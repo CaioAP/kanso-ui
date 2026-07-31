@@ -17,6 +17,25 @@ export {
   DialogTrigger,
   type DialogTriggerProps,
 } from './dialog';
+export {
+  Menu,
+  MenuContent,
+  type MenuContentProps,
+  MenuGroup,
+  MenuGroupLabel,
+  type MenuGroupLabelProps,
+  type MenuGroupProps,
+  MenuItem,
+  type MenuItemProps,
+  MenuPositioner,
+  type MenuPositionerProps,
+  MenuRoot,
+  type MenuRootProps,
+  MenuSeparator,
+  type MenuSeparatorProps,
+  MenuTrigger,
+  type MenuTriggerProps,
+} from './menu';
 export { normalizeProps, type ReactPropTypes } from './normalize-props';
 export { Switch, type SwitchProps } from './switch';
 export {

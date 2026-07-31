@@ -42,6 +42,10 @@
       "types": "./dist/dialog.d.ts",
       "import": "./dist/dialog.js"
     },
+    "./menu": {
+      "types": "./dist/menu.d.ts",
+      "import": "./dist/menu.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {

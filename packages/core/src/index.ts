@@ -34,6 +34,34 @@ export {
   type RovingMove,
 } from './dom/roving-focus';
 export { lockScroll } from './dom/scroll-lock';
+export {
+  createTypeahead,
+  isTypeaheadKey,
+  matchTypeahead,
+  type Typeahead,
+  type TypeaheadMatchOptions,
+} from './dom/typeahead';
+export {
+  type ActivateMenuOptions,
+  activateMenu,
+  connectMenu,
+  initialMenuState,
+  type MenuApi,
+  type MenuEvent,
+  type MenuGroupProps,
+  type MenuIds,
+  type MenuItemProps,
+  type MenuOpenFocus,
+  type MenuPart,
+  type MenuPlacement,
+  type MenuSend,
+  type MenuState,
+  type MenuStateInit,
+  measureMenuPlacement,
+  menuAnatomy,
+  menuIds,
+  menuReducer,
+} from './menu';
 export { createNormalizer } from './normalize';
 export {
   connectSwitch,

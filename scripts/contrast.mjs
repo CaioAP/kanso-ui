@@ -182,6 +182,13 @@ const pairs = [
   // the dialog's own 1px --kanso-line border is decorative: what tells a user a
   // modal is open is the dimmed page and the moved focus, never that hairline.
   ['fg', 'surface-sunk', 4.5, 'dialog trigger and close button text, hovered'],
+  // Menu. Item text is fg on surface and, hovered or focused, fg on
+  // surface-sunk — both already above. The group label is fg-muted on surface,
+  // also above. The separator is --kanso-line, decorative by definition. The
+  // one genuinely new pair is the disabled item: WCAG exempts inactive controls
+  // from the contrast minimum, and holding them to 3:1 anyway is the difference
+  // between "unavailable" and "unreadable".
+  ['fg-faint', 'surface', 3.0, 'disabled menu item'],
 ];
 
 let failures = 0;

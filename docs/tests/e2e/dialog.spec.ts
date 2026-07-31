@@ -29,6 +29,19 @@ const panel = (page: Page, framework: 'vue' | 'react') =>
 const hydrated = (page: Page, framework: 'vue' | 'react') =>
   expect(page.locator(`[data-panel="${framework}"] astro-island[ssr]`)).toHaveCount(0);
 
+/**
+ * Wait out the entry animation before scanning colours.
+ *
+ * axe computes contrast from *composited* colours, so a scan that lands
+ * mid-fade measures half-transparent text against whatever is behind it. The
+ * Menu suite hit this for real; the same fade exists here, so the same wait
+ * belongs here before it does.
+ */
+const settled = (locator: ReturnType<Page['locator']>) =>
+  locator.evaluate((element) =>
+    Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)),
+  );
+
 test.describe('Dialog docs page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/components/dialog/');
@@ -70,6 +83,7 @@ test.describe('Dialog docs page', () => {
         // button, so a closed-only scan says almost nothing.
         await trigger(page).click();
         await expect(dialog(page)).toBeVisible();
+        await settled(dialog(page));
 
         const results = await new AxeBuilder({ page })
           .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
@@ -316,6 +330,7 @@ test.describe('Dialog embed route', () => {
 
     await page.getByRole('button', { name: 'Delete project' }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
+    await settled(page.getByRole('dialog'));
 
     expect((await scan()).violations).toEqual([]);
   });

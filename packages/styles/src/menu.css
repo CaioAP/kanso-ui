@@ -1,0 +1,167 @@
+/**
+ * Menu.
+ *
+ * Scoped by [data-scope='menu']. One scope root, unlike Dialog's two: the menu
+ * is not portalled, so the whole component lives under one element — and that
+ * element is also the positioning anchor. See docs/03 §4 decisions 3 and 4.
+ *
+ * All the positioning is here. `menu.dom.ts` measures once at open and writes a
+ * `data-placement` into state; this file is what that attribute means. No
+ * inline styles, so a consumer restyling the menu keeps the collision handling.
+ */
+
+[data-kanso][data-scope='menu'] {
+  position: relative;
+  display: inline-block;
+}
+
+/* Deliberately plain — Phase 5's Button owns button styling, and this must not
+ * become a second, competing definition of one. */
+[data-scope='menu'] [data-part='trigger'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* WCAG 2.2 SC 2.5.8 wants 24x24 CSS pixels; 44px is the comfortable target. */
+  min-height: 2.75rem;
+  padding: var(--kanso-space-2) var(--kanso-space-4);
+  border: var(--kanso-border) solid var(--kanso-line-strong);
+  border-radius: var(--kanso-radius);
+  background: var(--kanso-surface);
+  color: var(--kanso-fg);
+  cursor: pointer;
+  /* The library sets no font-family; the button must not impose one either. */
+  font: inherit;
+}
+
+[data-scope='menu'] [data-part='trigger']:hover {
+  background: var(--kanso-surface-sunk);
+}
+
+/*
+ * The layer. Absolutely positioned against the root, which is the whole of the
+ * "simple CSS anchoring" docs/03 §4 asks for — no positioning engine, and no
+ * measurement beyond the one flip below.
+ */
+[data-scope='menu'] [data-part='positioner'] {
+  position: absolute;
+  z-index: 40;
+  min-width: 100%;
+}
+
+[data-scope='menu'] [data-part='positioner'][data-placement^='bottom'] {
+  top: calc(100% + var(--kanso-space-1));
+}
+
+[data-scope='menu'] [data-part='positioner'][data-placement^='top'] {
+  bottom: calc(100% + var(--kanso-space-1));
+}
+
+[data-scope='menu'] [data-part='positioner'][data-placement$='start'] {
+  inset-inline-start: 0;
+}
+
+[data-scope='menu'] [data-part='positioner'][data-placement$='end'] {
+  inset-inline-end: 0;
+}
+
+[data-scope='menu'] [data-part='content'] {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 12rem;
+  /* Long menus scroll rather than running off the screen, so a focused item is
+   * always brought into view by the browser (WCAG 2.2 SC 2.4.11). */
+  max-height: min(20rem, calc(100dvh - 4rem));
+  overflow: auto;
+  padding: var(--kanso-space-1);
+  border: var(--kanso-border) solid var(--kanso-line);
+  border-radius: var(--kanso-radius);
+  background: var(--kanso-surface);
+  color: var(--kanso-fg);
+}
+
+/* Focus lands here only when the menu has no items at all. */
+[data-scope='menu'] [data-part='content']:focus {
+  outline: none;
+}
+
+[data-scope='menu'] [data-part='item'] {
+  display: flex;
+  align-items: center;
+  gap: var(--kanso-space-2);
+  width: 100%;
+  /* SC 2.5.8 again: a 44px row is also simply easier to hit. */
+  min-height: 2.75rem;
+  padding: var(--kanso-space-2) var(--kanso-space-3);
+  border: 0;
+  border-radius: var(--kanso-radius);
+  background: transparent;
+  color: var(--kanso-fg);
+  cursor: pointer;
+  font: inherit;
+  text-align: start;
+}
+
+[data-scope='menu'] [data-part='item']:hover:not([data-disabled]) {
+  background: var(--kanso-surface-sunk);
+}
+
+/*
+ * Focus is *not* styled with :focus-visible here, unlike every other component.
+ *
+ * Menu moves focus by script — the arrows and typeahead call `.focus()` — and
+ * the browser's heuristic reports that as a pointer interaction when the menu
+ * was opened by pointer, so the ring would vanish exactly when a keyboard user
+ * is navigating. A menu item that has focus is the current item, and it has to
+ * look like it.
+ */
+[data-scope='menu'] [data-part='item']:focus {
+  outline: var(--kanso-focus-ring) solid var(--kanso-focus-color);
+  outline-offset: calc(-1 * var(--kanso-focus-ring));
+  background: var(--kanso-surface-sunk);
+}
+
+/*
+ * Disabled items stay visible and stay focusable — that is the point of
+ * `aria-disabled` rather than `disabled`. WCAG exempts inactive controls from
+ * the contrast minimum; this palette holds them to 3:1 anyway, and
+ * `pnpm contrast` measures it.
+ */
+[data-scope='menu'] [data-part='item'][data-disabled] {
+  color: var(--kanso-fg-faint);
+  cursor: default;
+}
+
+[data-scope='menu'] [data-part='separator'] {
+  height: var(--kanso-border);
+  margin: var(--kanso-space-1) 0;
+  border: 0;
+  background: var(--kanso-line);
+}
+
+[data-scope='menu'] [data-part='group-label'] {
+  padding: var(--kanso-space-2) var(--kanso-space-3) var(--kanso-space-1);
+  color: var(--kanso-fg-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/*
+ * Entry only, matching Dialog: closing unmounts the content, so there is no
+ * exit state to animate. The movement is 2px, because a menu appears next to
+ * the thing that opened it and does not need announcing.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-scope='menu'] [data-part='content'] {
+    animation: kanso-menu-enter var(--kanso-duration) var(--kanso-ease);
+  }
+}
+
+@keyframes kanso-menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}

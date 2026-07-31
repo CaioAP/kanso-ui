@@ -252,7 +252,9 @@ export const ariaAttr = (cond: boolean | undefined) => (cond ? true : undefined)
 
 ### Composition, not inheritance
 
-`Menu` reuses `focus-trap`, `dismissable`, `roving-focus` and `typeahead`. `Dialog`
+`Menu` reuses `dismissable`, `roving-focus` and `typeahead` — **not** `focus-trap`,
+which would swallow the `Tab` that is meant to close it (`docs/03` §4 decision 1;
+this list said otherwise until Phase 4 corrected it). `Dialog`
 reuses `focus-trap`, `scroll-lock`, `dismissable`. That reuse is precisely why the
 build order in `docs/07` is Switch → Tabs → Dialog → Menu: each phase builds a
 utility the next one needs.
