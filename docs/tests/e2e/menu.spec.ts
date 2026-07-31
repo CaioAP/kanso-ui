@@ -269,6 +269,30 @@ test.describe('Menu placement', () => {
       expect((menuBox?.y ?? 0) + (menuBox?.height ?? 0)).toBeLessThanOrEqual(420);
     }
   });
+
+  test('lands in the same place on every open', async ({ page }) => {
+    // The oscillation the measurement is written to avoid: taken from where the
+    // menu currently *sits*, each answer depends on the last one, so a menu that
+    // flipped above finds room below, flips back, and moves on alternate presses
+    // of the same button. Opening once could never show it.
+    await page.setViewportSize({ width: 900, height: 420 });
+    await page.goto('/embed/menu');
+
+    const trigger = page.getByRole('button', { name: 'Actions' }).first();
+    const positioner = page.locator('[data-part="positioner"]').first();
+
+    const placements: (string | null)[] = [];
+    for (let open = 0; open < 3; open += 1) {
+      await trigger.click();
+      await expect(page.getByRole('menu').first()).toBeVisible();
+      placements.push(await positioner.getAttribute('data-placement'));
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('menu')).toHaveCount(0);
+    }
+
+    expect(placements[1]).toBe(placements[0]);
+    expect(placements[2]).toBe(placements[0]);
+  });
 });
 
 test.describe('Menu embed route', () => {

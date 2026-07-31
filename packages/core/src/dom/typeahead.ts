@@ -95,9 +95,15 @@ export interface Typeahead {
    * because only the caller knows the labels.
    */
   push: (key: string) => string;
-  /** Drop the buffer immediately — on close, or on selection. */
-  clear: () => void;
-  /** Teardown. Clears the pending timer; safe to call twice. */
+  /**
+   * Teardown. Drops the buffer and cancels the pending timer; safe to call
+   * twice.
+   *
+   * There is deliberately no separate `clear()`. One existed, and nothing ever
+   * called it: a menu's buffer is only ever discarded when the menu closes,
+   * which destroys the instance anyway. An exported method with no caller is a
+   * claim about behaviour that nothing in the library exercises.
+   */
   destroy: () => void;
 }
 
@@ -119,11 +125,6 @@ export function createTypeahead(resetMs: number = RESET_MS): Typeahead {
         timer = undefined;
       }, resetMs);
       return query;
-    },
-
-    clear() {
-      query = '';
-      clearTimer();
     },
 
     destroy() {

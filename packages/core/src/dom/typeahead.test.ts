@@ -128,11 +128,11 @@ describe('createTypeahead — the buffer', () => {
     typeahead.destroy();
   });
 
-  it('clears on demand — closing a menu must not leave a query behind', () => {
+  it('starts fresh after a destroy, so a reopened menu has no stale query', () => {
     const typeahead = createTypeahead();
 
     typeahead.push('s');
-    typeahead.clear();
+    typeahead.destroy();
 
     expect(typeahead.push('e')).toBe('e');
     typeahead.destroy();

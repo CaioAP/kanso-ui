@@ -449,7 +449,13 @@ decision 5 claimed as proof of the layer stack and nothing had exercised.
    group label against the page. Both the Menu and Dialog suites now await
    `getAnimations()` before scanning. Third time a docs-site defect has
    presented as flakiness rather than as a failure.
-3. **The first typeahead e2e test was wrong about its own feature.** It pressed
+3. **Placement oscillated between opens.** `measureMenuPlacement` read the
+   menu's *current* rect, so each answer depended on the previous one: a menu
+   that flipped above found room below next time, flipped back, and landed
+   somewhere different on alternate presses of the same button. Now measured
+   from the trigger plus the menu's size, which is placement-independent. Found
+   by review rather than by a test — every test opened the menu once.
+4. **The first typeahead e2e test was wrong about its own feature.** It pressed
    "r" then "d" and expected two separate jumps; consecutive keys are *one
    query*, so it searched for "rd" and matched nothing. The test now waits past
    the reset window between distinct queries, which is what a user does.
@@ -459,6 +465,9 @@ decision 5 claimed as proof of the layer stack and nothing had exercised.
 - Verified by planting the defect: adding `preventDefault()` to the `Tab` branch
   — the one-line change that turns this into a trap — fails both adapter suites
   and the browser suite in both frameworks
+- `typeahead.clear()` was removed before merge: nothing called it, and an
+  exported method with no caller is a claim about behaviour the library never
+  exercises
 - One new colour pair (`fg-faint` on `surface`, the disabled item). WCAG exempts
   inactive controls from the contrast minimum; holding them to 3:1 anyway is the
   difference between "unavailable" and "unreadable"

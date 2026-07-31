@@ -490,7 +490,7 @@ also the one scope root the stylesheet keys off. See decision 3.
 | `Enter` / `Space` | Open | Activate item, close, focus trigger |
 | `Escape` | Open | Close, focus trigger |
 | `Tab` | Open | Close **and** let focus move on (do not swallow) |
-| a–z | Open | Typeahead: focus next item starting with typed string |
+| any single character | Open | Typeahead: focus next item starting with the typed string |
 
 **Typeahead** buffers keystrokes with a ~500 ms reset, matches case-insensitively
 on item text, and wraps. Repeated presses of one letter cycle matching items.

@@ -377,15 +377,29 @@ describe('measureMenuPlacement', () => {
   it('stays below and start-aligned when the menu fits', () => {
     viewport(1000, 800);
     stubRect(byId('trigger'), { top: 100, bottom: 140, left: 20, right: 120 });
-    stubRect(byId('menu'), { top: 140, bottom: 340, left: 20, right: 220, height: 200 });
+    stubRect(byId('menu'), {
+      top: 140,
+      bottom: 340,
+      left: 20,
+      right: 220,
+      height: 200,
+      width: 200,
+    });
 
     expect(measureMenuPlacement(byId('trigger'), byId('menu'))).toBe('bottom-start');
   });
 
-  it('flips above when it would overflow the bottom and there is room', () => {
+  it('flips above when there is no room below and enough above', () => {
     viewport(1000, 400);
     stubRect(byId('trigger'), { top: 300, bottom: 340, left: 20, right: 120 });
-    stubRect(byId('menu'), { top: 340, bottom: 540, left: 20, right: 220, height: 200 });
+    stubRect(byId('menu'), {
+      top: 340,
+      bottom: 540,
+      left: 20,
+      right: 220,
+      height: 200,
+      width: 200,
+    });
 
     expect(measureMenuPlacement(byId('trigger'), byId('menu'))).toBe('top-start');
   });
@@ -395,23 +409,68 @@ describe('measureMenuPlacement', () => {
     // the *first* item off-screen — which is where focus lands.
     viewport(1000, 400);
     stubRect(byId('trigger'), { top: 40, bottom: 80, left: 20, right: 120 });
-    stubRect(byId('menu'), { top: 80, bottom: 680, left: 20, right: 220, height: 600 });
+    stubRect(byId('menu'), { top: 80, bottom: 680, left: 20, right: 220, height: 600, width: 200 });
 
     expect(measureMenuPlacement(byId('trigger'), byId('menu'))).toBe('bottom-start');
   });
 
-  it('flips the alignment when it would overflow the inline end', () => {
+  it('flips the alignment when a start-aligned menu would overflow the inline end', () => {
     viewport(300, 800);
     stubRect(byId('trigger'), { top: 100, bottom: 140, left: 180, right: 280 });
-    stubRect(byId('menu'), { top: 140, bottom: 340, left: 180, right: 380, height: 200 });
+    stubRect(byId('menu'), {
+      top: 140,
+      bottom: 340,
+      left: 180,
+      right: 380,
+      height: 200,
+      width: 200,
+    });
 
     expect(measureMenuPlacement(byId('trigger'), byId('menu'))).toBe('bottom-end');
+  });
+
+  it('gives the same answer however the menu is currently placed', () => {
+    // The oscillation this measurement is written to avoid: reading the menu's
+    // *position* rather than the trigger's makes each answer depend on the last
+    // one, so a menu that flipped above finds no overflow below, flips back, and
+    // lands somewhere different on every press of the same button.
+    viewport(1000, 400);
+    stubRect(byId('trigger'), { top: 300, bottom: 340, left: 20, right: 120 });
+
+    // Rendered below, overflowing.
+    stubRect(byId('menu'), {
+      top: 340,
+      bottom: 540,
+      left: 20,
+      right: 220,
+      height: 200,
+      width: 200,
+    });
+    expect(measureMenuPlacement(byId('trigger'), byId('menu'))).toBe('top-start');
+
+    // The same menu, now rendered above and fitting perfectly. Same answer.
+    stubRect(byId('menu'), {
+      top: 100,
+      bottom: 300,
+      left: 20,
+      right: 220,
+      height: 200,
+      width: 200,
+    });
+    expect(measureMenuPlacement(byId('trigger'), byId('menu'))).toBe('top-start');
   });
 
   it('is reported through the callback only when it changes', () => {
     viewport(1000, 800);
     stubRect(byId('trigger'), { top: 100, bottom: 140, left: 20, right: 120 });
-    stubRect(byId('menu'), { top: 140, bottom: 340, left: 20, right: 220, height: 200 });
+    stubRect(byId('menu'), {
+      top: 140,
+      bottom: 340,
+      left: 20,
+      right: 220,
+      height: 200,
+      width: 200,
+    });
 
     const onPlacementChange = vi.fn();
     activate({ onPlacementChange, placement: 'bottom-start' });
@@ -424,7 +483,14 @@ describe('measureMenuPlacement', () => {
   it('reports a flip', () => {
     viewport(1000, 400);
     stubRect(byId('trigger'), { top: 300, bottom: 340, left: 20, right: 120 });
-    stubRect(byId('menu'), { top: 340, bottom: 540, left: 20, right: 220, height: 200 });
+    stubRect(byId('menu'), {
+      top: 340,
+      bottom: 540,
+      left: 20,
+      right: 220,
+      height: 200,
+      width: 200,
+    });
 
     const onPlacementChange = vi.fn();
     activate({ onPlacementChange, placement: 'bottom-start' });

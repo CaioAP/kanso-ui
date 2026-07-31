@@ -134,7 +134,7 @@ Vue supports `v-model:open` on `Menu.Root`.
 | `Enter` / `Space` | Open | Activate the item, close, focus the trigger |
 | `Escape` | Open | Close, focus the trigger |
 | `Tab` | Open | Close **and let focus move on** |
-| a–z, 0–9 | Open | Typeahead |
+| any single character | Open | Typeahead |
 
 Two of those need no handler at all: the trigger and every item are real
 `<button>` elements, so `Enter` and `Space` already produce a click.
@@ -159,6 +159,14 @@ Pressing the *same* letter repeatedly cycles through the items starting with it
 keys" is still reachable by typing its name.
 
 Typeahead lands on disabled items, exactly as the arrows do.
+
+Any single printable character counts, not just letters and digits — item labels
+contain punctuation and accents too. `Space` is the exception: it activates the
+focused item.
+
+`Escape` is **consumed** by the open menu, so a page-level `Escape` shortcut does
+not also fire while a menu is open. Unlike Dialog, there is no prop to opt out of
+that; a menu that ignored `Escape` would be a menu you cannot leave by keyboard.
 
 ## Disabled items
 

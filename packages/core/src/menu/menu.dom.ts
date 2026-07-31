@@ -38,28 +38,38 @@ export interface ActivateMenuOptions {
 /**
  * Where the menu fits.
  *
- * Measured once, from the position CSS has already put it in, so this reads the
- * result of the default placement rather than predicting it. Nothing listens
- * for `resize` or `scroll` afterwards: a menu open across a viewport change is
- * rare enough that a stale placement beats two live listeners per menu.
- * `docs/03` §4 decision 9.
+ * Measured once at open, and nothing listens for `resize` or `scroll`
+ * afterwards: a menu open across a viewport change is rare enough that a stale
+ * placement beats two live listeners per menu. `docs/03` §4 decision 9.
+ *
+ * The measurement is deliberately taken from the **trigger** plus the menu's
+ * *size*, never from where the menu currently sits. Reading its position would
+ * make the answer depend on the previous answer — a menu that flipped above
+ * last time is measured while it is above, finds no overflow below, reports
+ * `bottom`, and flips back and forth on alternate opens. That failure is
+ * user-visible (the menu lands somewhere different each press) and completely
+ * invisible to a test that only opens once.
+ *
+ * No RTL handling, matching `roving-focus.ts`: mirroring `start`/`end` needs
+ * the computed direction, which is a DOM read this does not take.
  */
 export function measureMenuPlacement(trigger: HTMLElement, content: HTMLElement): MenuPlacement {
   const view = content.ownerDocument.defaultView;
   if (view === null) return 'bottom-start';
 
-  const menu = content.getBoundingClientRect();
   const anchor = trigger.getBoundingClientRect();
+  const menu = content.getBoundingClientRect();
 
-  // Flip above only when there is genuinely more room there. A menu taller than
-  // the viewport overflows either way, and flipping it would move the *first*
-  // item off-screen instead of the last — strictly worse, since that is where
-  // focus lands.
-  const overflowsBottom = menu.bottom > view.innerHeight;
-  const side = overflowsBottom && anchor.top > menu.height ? 'top' : 'bottom';
+  // Flip above only when the menu genuinely fits there. One taller than the
+  // viewport overflows either way, and flipping it would push the *first* item
+  // off-screen instead of the last — strictly worse, since that is where focus
+  // lands.
+  const spaceBelow = view.innerHeight - anchor.bottom;
+  const spaceAbove = anchor.top;
+  const side = menu.height > spaceBelow && menu.height <= spaceAbove ? 'top' : 'bottom';
 
-  const overflowsInlineEnd = menu.right > view.innerWidth;
-  const align = overflowsInlineEnd ? 'end' : 'start';
+  // Where a start-aligned menu *would* end, rather than where this one does.
+  const align = anchor.left + menu.width > view.innerWidth ? 'end' : 'start';
 
   return `${side}-${align}`;
 }
