@@ -57,6 +57,7 @@ export interface PropTypes<T = any> {
   element: T
   button: T
   input: T
+  textarea: T   // added in Phase 5 — a textarea is not an input; docs/03 §5
   label: T
 }
 
@@ -65,6 +66,7 @@ export interface NormalizeProps<T extends PropTypes> {
   element: (props: Dict) => T['element']
   button: (props: Dict) => T['button']
   input: (props: Dict) => T['input']
+  textarea: (props: Dict) => T['textarea']
   label: (props: Dict) => T['label']
 }
 
@@ -236,6 +238,7 @@ core/src/dom/
 ├─ dismissable.ts      onOutsideClick / onEscape helpers
 ├─ roving-focus.ts     roving tabindex manager (Tabs, Menu)
 ├─ typeahead.ts        type-to-select buffer (Menu)
+├─ env.ts              isDevelopment() — gates the dev-only warnings
 └─ attrs.ts            dataAttr(), ariaAttr() helpers
 ```
 
@@ -251,6 +254,12 @@ export const ariaAttr = (cond: boolean | undefined) => (cond ? true : undefined)
 ```
 
 ### Composition, not inheritance
+
+`Field` reuses none of them, which is worth saying out loud: it has no reducer,
+no listeners and no focus management, and its `field.dom.ts` holds a single
+development-time warning. `Button` and `Card` have no `dom` module at all. Not
+every component needs the machinery, and a thin one that pretends otherwise is
+harder to read, not more consistent — see `docs/03` §6 decision 1.
 
 `Menu` reuses `dismissable`, `roving-focus` and `typeahead` — **not** `focus-trap`,
 which would swallow the `Tab` that is meant to close it (`docs/03` §4 decision 1;

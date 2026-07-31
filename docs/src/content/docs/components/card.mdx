@@ -1,0 +1,137 @@
+---
+title: Card
+description: A layout container with header, body and footer — and the whole-card link pattern, including what it costs.
+---
+
+import { cardAnatomy } from '@caioalfonso/kanso-core';
+import ComponentPreview from '../../../components/ComponentPreview.astro';
+import CardPlayground from '../../../components/card/CardPlayground.vue';
+import { CardPlaygroundReact } from '../../../components/card/CardPlaygroundReact';
+import basicVue from '../../../examples/card/CardBasic.vue?raw';
+import basicReact from '../../../examples/card/CardBasic.tsx?raw';
+
+Layout, and nothing else. No state, no keyboard, no ARIA — a card is a box with
+three slots in it.
+
+It is here for one reason beyond completeness: the "clickable card" is a genuine
+accessibility trap, and this page is where it gets explained.
+
+<ComponentPreview label="Card" vueSource={basicVue} reactSource={basicReact}>
+  <CardPlayground slot="vue" client:visible />
+  <CardPlaygroundReact slot="react" client:visible />
+</ComponentPreview>
+
+## Installation
+
+```ts
+import { Card } from '@caioalfonso/kanso-react/card';
+```
+
+```ts
+import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/card';
+```
+
+## Anatomy
+
+<table>
+  <thead>
+    <tr>
+      <th>Part</th>
+      <th>Element</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>root</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td><code>as</code> swaps the tag. Carries <code>data-kanso</code>.</td>
+    </tr>
+    <tr>
+      <td><code>header</code> / <code>body</code> / <code>footer</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td>Padding and layout only.</td>
+    </tr>
+  </tbody>
+</table>
+
+The list above comes from `cardAnatomy`: `{cardAnatomy.join(', ')}`.
+
+## Props
+
+`Card.Root` takes `as` — `div` (default), `article`, `section` or `li`. Pick the
+one that describes the content: a list of cards is a `<ul>` of `<li>`, a
+standalone teaser is an `<article>`.
+
+The parts take nothing of their own. Everything else passes through to the
+element.
+
+## Keyboard
+
+None. A card is not interactive, so it is not a tab stop and it handles no keys.
+
+Whatever you put inside it keeps its own keyboard behaviour — which is exactly
+what the whole-card link below is careful not to break.
+
+## Never wrap the card in a link
+
+The instinct is to make the whole card clickable by wrapping it:
+
+```tsx
+// Don't.
+<a href="/post">
+  <Card.Root>…</Card.Root>
+</a>
+```
+
+Three things go wrong at once. The link's accessible name becomes every word in
+the card read out in sequence. Any button or link inside is now nested inside
+another link, which is invalid and produces a tab order nobody can predict. And
+the text stops being selectable, because dragging across it starts a drag of the
+link.
+
+## The pattern that works
+
+One real link, stretched over the card with a pseudo-element:
+
+```css
+[data-scope='card'] a[data-card-link]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+```
+
+```tsx
+<Card.Root as="article">
+  <Card.Header>
+    <h3><a href="/post" data-card-link>Kanso</a></h3>
+  </Card.Header>
+  <Card.Body>Simplicity through the elimination of clutter.</Card.Body>
+</Card.Root>
+```
+
+The root is already `position: relative` in the shipped stylesheet, so the
+overlay has something to attach to. Screen readers get one link with a sensible
+name, the tab order stays sane, and the text remains selectable.
+
+### What it costs
+
+The overlay sits above the card's content, so **a second interactive element
+inside the card is unreachable by pointer.** Try it: turn on the whole-card link
+knob in the preview above and then try to press "Save for later".
+
+That is not a bug to route around with `z-index`. It is the pattern telling you
+this card has two actions, and a card with two actions should not be one big
+link — give it a normal title link and let the second control be itself.
+
+## Accessibility
+
+- No role, no `tabindex`, no state. A card that announced itself as something
+  would be claiming semantics you did not ask for.
+- Use the heading levels that fit the page, not the ones that look right. The
+  card does not impose any.
+- With the whole-card link, the focus ring is moved onto the card via `:has()`,
+  because the link's own box is only as wide as its text and a ring there would
+  point at the wrong thing.

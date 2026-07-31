@@ -33,6 +33,9 @@
     "./tabs": "./dist/tabs.css",
     "./dialog": "./dist/dialog.css",
     "./menu": "./dist/menu.css",
+    "./field": "./dist/field.css",
+    "./button": "./dist/button.css",
+    "./card": "./dist/card.css",
     "./package.json": "./package.json"
   },
   "publishConfig": {

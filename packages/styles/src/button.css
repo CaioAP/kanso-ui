@@ -1,0 +1,138 @@
+/**
+ * Button.
+ *
+ * Scoped by [data-scope='button']. Three variants, three sizes, and one state
+ * that matters: `data-loading`.
+ *
+ * The size scale does not shrink the target. Every size keeps a 44px minimum
+ * (WCAG 2.2 SC 2.5.5); `sm` is narrower and lighter, not shorter. The
+ * alternative — a smaller box with the hit area extended by a transparent
+ * pseudo-element — is a real technique and is rejected here because it makes
+ * the target invisible both to a reader of this file and to a Playwright
+ * `boundingBox()`. See docs/03 §6 decision 5.
+ */
+
+[data-kanso][data-scope='button'] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--kanso-space-2);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: var(--kanso-border) solid transparent;
+  border-radius: var(--kanso-radius);
+  cursor: pointer;
+  /* The library sets no font-family; the button must not impose one either. */
+  font: inherit;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* Sizes — inline padding and type size only. */
+[data-scope='button'][data-size='sm'] {
+  padding: var(--kanso-space-2) var(--kanso-space-3);
+  font-size: 0.875rem;
+}
+
+[data-scope='button'][data-size='md'] {
+  padding: var(--kanso-space-2) var(--kanso-space-4);
+}
+
+[data-scope='button'][data-size='lg'] {
+  min-height: 3.25rem;
+  padding: var(--kanso-space-3) var(--kanso-space-6);
+  font-size: 1.0625rem;
+}
+
+/* Variants. */
+[data-scope='button'][data-variant='solid'] {
+  background: var(--kanso-accent);
+  color: var(--kanso-on-accent);
+}
+
+[data-scope='button'][data-variant='solid']:hover:not(:disabled) {
+  background: var(--kanso-accent-hover);
+}
+
+[data-scope='button'][data-variant='outline'] {
+  border-color: var(--kanso-line-strong);
+  background: transparent;
+  color: var(--kanso-fg);
+}
+
+[data-scope='button'][data-variant='outline']:hover:not(:disabled) {
+  background: var(--kanso-surface-sunk);
+}
+
+[data-scope='button'][data-variant='ghost'] {
+  background: transparent;
+  color: var(--kanso-fg);
+}
+
+[data-scope='button'][data-variant='ghost']:hover:not(:disabled) {
+  background: var(--kanso-surface-sunk);
+}
+
+/*
+ * Disabled is the native attribute, so the browser has already removed it from
+ * the tab order and from pointer events. WCAG exempts inactive controls from
+ * the contrast minimum, which is why this is allowed to be an opacity rather
+ * than a measured colour pair.
+ */
+[data-scope='button']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/*
+ * Loading. The label fades with `opacity` and nothing else.
+ *
+ * `visibility: hidden` and `display: none` would both remove it from the
+ * accessibility tree and take the button's accessible name with them, which is
+ * the entire reason the label is a separate part. See docs/03 §6 decision 4.
+ */
+[data-scope='button'] [data-part='label'] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kanso-space-2);
+}
+
+[data-scope='button'] [data-part='label'][data-loading] {
+  opacity: 0;
+}
+
+[data-scope='button'][data-loading] {
+  cursor: progress;
+}
+
+/*
+ * The spinner is a pseudo-element on the button, so it needs no markup and
+ * cannot be reached by an assistive technology — `aria-busy` on the button is
+ * what says "working", and saying it twice would be worse than saying it once.
+ *
+ * Under `prefers-reduced-motion: reduce` the animation is cancelled by base.css
+ * and this stays as a static ring, which is still a visible "not idle" state.
+ */
+[data-scope='button'][data-loading]::after {
+  content: '';
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentcolor;
+  border-block-start-color: transparent;
+  border-radius: var(--kanso-radius-full);
+  opacity: 0.9;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-scope='button'][data-loading]::after {
+    animation: kanso-button-spin 700ms linear infinite;
+  }
+}
+
+@keyframes kanso-button-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}

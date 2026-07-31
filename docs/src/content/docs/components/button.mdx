@@ -1,0 +1,140 @@
+---
+title: Button
+description: Variants, sizes, and a loading state that stays focusable and keeps its accessible name — shared between Vue 3 and React 19.
+---
+
+import { buttonAnatomy } from '@caioalfonso/kanso-core';
+import ComponentPreview from '../../../components/ComponentPreview.astro';
+import ButtonPlayground from '../../../components/button/ButtonPlayground.vue';
+import { ButtonPlaygroundReact } from '../../../components/button/ButtonPlaygroundReact';
+import basicVue from '../../../examples/button/ButtonBasic.vue?raw';
+import basicReact from '../../../examples/button/ButtonBasic.tsx?raw';
+
+A native `<button>` with three variants, three sizes, and one piece of
+behaviour: while `loading`, a press does nothing.
+
+<ComponentPreview label="Button" vueSource={basicVue} reactSource={basicReact}>
+  <ButtonPlayground slot="vue" client:visible />
+  <ButtonPlaygroundReact slot="react" client:visible />
+</ComponentPreview>
+
+Turn `loading` on and press it. The counter stops, the button keeps its focus
+ring, and it still announces as "Save changes".
+
+## Installation
+
+```ts
+import { Button } from '@caioalfonso/kanso-react/button';
+```
+
+```ts
+import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/button';
+```
+
+## Anatomy
+
+<table>
+  <thead>
+    <tr>
+      <th>Part</th>
+      <th>Element</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>root</code></td>
+      <td><code>&lt;button&gt;</code></td>
+      <td>Carries <code>data-variant</code>, <code>data-size</code>, <code>data-loading</code>.</td>
+    </tr>
+    <tr>
+      <td><code>label</code></td>
+      <td><code>&lt;span&gt;</code></td>
+      <td>Wraps the children so the spinner can fade them without deleting the name.</td>
+    </tr>
+  </tbody>
+</table>
+
+The list above comes from `buttonAnatomy`: `{buttonAnatomy.join(', ')}`.
+
+## Props
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `variant` | `'solid' \| 'outline' \| 'ghost'` | `'solid'` | |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Type and padding. Never the target size. |
+| `loading` | `boolean` | `false` | `aria-busy`, focusable, activation blocked. |
+| `disabled` | `boolean` | `false` | The native attribute. |
+| `type` | `'button' \| 'submit' \| 'reset'` | `'button'` | |
+
+Everything else goes straight to the `<button>`.
+
+## Keyboard
+
+None of its own, deliberately. `Enter` and `Space` activate a native `<button>`,
+and reaching for `role="button"` on a `<div>` to hand-roll them is the classic
+way to end up with a control that works for the mouse and not the keyboard.
+
+While `loading`, both keys are blocked along with the pointer — the guard is on
+activation, not on the pointer.
+
+## `loading` is not `disabled`
+
+The two look interchangeable and are not:
+
+- **`disabled`** removes the button from the tab order. A keyboard user who
+  pressed it a moment ago has just lost their place, and nothing announced why.
+- **`loading`** keeps it focusable, sets `aria-busy="true"`, and blocks
+  activation — including form submission for a `type="submit"` button.
+
+The block lives in core, in the composed click handler. That is deliberate: your
+`onClick` is passed *into* `connectButton` rather than left in the props spread,
+because core's props are applied last and would otherwise replace it. A button
+whose handler silently never fires renders perfectly and passes an axe scan.
+
+`aria-disabled` is **not** set while loading. "Busy" is a truer description of a
+button working on your last press than "unavailable".
+
+## Keeping the name under the spinner
+
+The obvious way to swap a label for a spinner is `visibility: hidden` or
+`display: none`. Both remove the element from the accessibility tree and take
+the button's accessible name with them.
+
+So the children are wrapped in a `label` part and faded with `opacity`, and the
+spinner is a pseudo-element on the button:
+
+```css
+[data-scope='button'] [data-part='label'][data-loading] {
+  opacity: 0;
+}
+```
+
+If you write your own loading treatment, keep that rule. Under
+`prefers-reduced-motion: reduce` the spin is cancelled and the ring stays
+static, which is still a visible "not idle".
+
+## Target size
+
+Every size keeps a **44 px minimum height**. `sm` is narrower and lighter, not
+shorter.
+
+That is stricter than WCAG 2.2 SC 2.5.8 (24 px) and matches SC 2.5.5 (AAA). The
+alternative — a genuinely smaller box with the hit area extended by a
+transparent pseudo-element — is a real technique, and it is rejected here
+because it makes the target invisible both to someone reading the CSS and to a
+test that measures the box.
+
+If your design needs a denser control than 44 px, that is a decision to make
+deliberately in your own stylesheet, not one to inherit by accident.
+
+## Accessibility
+
+- Always a native `<button>`, so `Enter` and `Space` come free.
+- `type="button"` by default, so a button inside a form never submits by
+  accident.
+- Focus is the browser's own ring via `:focus-visible`.
+- Disabled buttons are rendered at reduced opacity. WCAG exempts inactive
+  controls from the contrast minimum — this is the one place in the library
+  where a colour pair is deliberately not measured.
