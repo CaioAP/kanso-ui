@@ -344,6 +344,16 @@ Each of these passed every test that existed when it was written.
 
 ### Defects Phase 3 found
 
+0. **Nested dialogs froze `Tab`.** Both traps listen on the document in the
+   capture phase and the outer one runs first; with an inner dialog open, the
+   outer trap's own content is inside the subtree the inner trap just marked
+   `inert`, so it found nothing focusable, concluded there was nowhere to go,
+   and cancelled the press. Nothing in the suite covered nesting *behaviour* —
+   the nesting test that existed only inspected `inert` attributes. Fixed with a
+   module-level trap stack mirroring `dismissable.ts`; `docs/03` §3 decision 12
+   records it. Worth noting that the claim "nesting works" was already written
+   in three places before anything tested it.
+
 1. **Focus restoration worked by keyboard and silently failed by mouse.**
    Dismissing with a press restored focus to the trigger, and then the browser's
    own default action for that press moved focus to `<body>` — after our

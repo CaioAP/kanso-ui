@@ -189,7 +189,23 @@ entire distinction. Dismissal and focus movement still apply either way.
 
 The scroll lock compensates for the scrollbar it removes, so the page does not
 shift sideways when a dialog opens, and it is refcounted — a dialog opened from
-inside a dialog does not unlock the page when the inner one closes.
+inside a dialog does not unlock the page when the inner one closes. `Escape` and
+the `Tab` cycle are stack-aware too: with two dialogs open, only the topmost one
+responds.
+
+:::caution[A non-modal dialog should render no backdrop]
+`Dialog.Backdrop` covers the viewport by design, so leaving it in a non-modal
+dialog swallows every press meant for the page behind it — and a scrim over a
+page you can still use is a lie about the state anyway. Render it conditionally,
+or leave it out:
+
+```tsx
+<Dialog.Positioner>
+  {modal && <Dialog.Backdrop />}
+  <Dialog.Content>{/* … */}</Dialog.Content>
+</Dialog.Positioner>
+```
+:::
 
 ## `role="alertdialog"`
 

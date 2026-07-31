@@ -28,6 +28,19 @@ import { getFocusableEdges } from './focusable';
  * the container rather than about the background.
  */
 
+/**
+ * Live traps, oldest first — the same shape as `dismissable.ts`'s layer stack,
+ * and for the same reason.
+ *
+ * Both traps listen on the document in the capture phase, and the outer one was
+ * registered first, so it runs first. With an inner dialog open, the outer
+ * trap's own content sits inside the subtree the inner trap has just marked
+ * `inert`, so it finds nothing focusable, concludes there is nowhere to go, and
+ * cancels the press — freezing `Tab` inside a perfectly healthy inner dialog.
+ * Only the topmost trap may act.
+ */
+const traps: symbol[] = [];
+
 export interface FocusTrapOptions {
   /**
    * Where the background starts. Every child of this element that does not
@@ -67,8 +80,12 @@ export function trapFocus(container: HTMLElement, options: FocusTrapOptions = {}
     inerted.push(child);
   }
 
+  const trap = Symbol('kanso-focus-trap');
+  traps.push(trap);
+
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== 'Tab') return;
+    if (traps[traps.length - 1] !== trap) return;
 
     const edges = getFocusableEdges(container);
     if (edges === undefined) {
@@ -113,5 +130,10 @@ export function trapFocus(container: HTMLElement, options: FocusTrapOptions = {}
     doc.removeEventListener('keydown', onKeyDown, true);
     for (const element of inerted) element.removeAttribute('inert');
     inerted.length = 0;
+
+    // Spliced by identity rather than popped: teardown order is the framework's
+    // business and is not guaranteed to be the reverse of setup.
+    const index = traps.indexOf(trap);
+    if (index !== -1) traps.splice(index, 1);
   };
 }

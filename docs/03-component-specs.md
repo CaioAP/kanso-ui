@@ -266,7 +266,7 @@ Assert trap behaviour in **Playwright**, on a real browser.
 
 ### Decisions taken before implementation (Phase 3)
 
-Ten questions this spec did not answer, settled here rather than discovered in a
+Twelve questions this spec did not answer, settled here rather than discovered in a
 test, per `docs/01` §12 step 1. Dialog is the first component whose behaviour is
 mostly *effects*, so most of these are about when an effect runs and what it
 restores.
@@ -409,6 +409,41 @@ scrolls internally and the focused element is always brought into view by the
 browser. Nothing in core is involved, which is the right place for it: a
 consumer restyling the dialog inherits the constraint from the part, not from
 JavaScript they cannot see.
+
+**11. The backdrop renders *inside* the positioner, not beside it.**
+
+The obvious structure portals the backdrop and the positioner as two siblings,
+which is what Zag does. It cannot work here, and the reason is the focus trap:
+`trapFocus` marks every top-level element that does not contain the content as
+`inert`, so a separately portalled backdrop is marked too — and an inert element
+receives no pointer events. Click-outside-to-close stops working, silently, and
+only when the dialog is modal.
+
+Nesting the backdrop inside the positioner keeps the whole dialog in one branch.
+It also costs nothing: the backdrop is `position: fixed` regardless, so it still
+covers the viewport.
+
+Two consequences the docs page carries. A **non-modal** dialog should render no
+backdrop at all — a scrim over a page that is still usable is a lie about the
+state, and being viewport-sized it swallows every press the page was meant to
+receive. And the positioner needs `pointer-events: none` with the content and
+backdrop taking events back, or a non-modal dialog makes the whole page
+unclickable while looking entirely correct.
+
+**12. `Escape` is stack-aware, and so is the `Tab` cycle.**
+
+Decision 5 gives `dismissable.ts` a layer stack so that only the topmost layer
+closes. The focus trap needs the identical treatment, and this was found by
+testing rather than by design: both traps listen on the document in the capture
+phase, and the outer one runs first. With an inner dialog open, the outer trap's
+own content sits inside the subtree the inner trap has just marked `inert`, so
+it finds nothing focusable, concludes there is nowhere to go, and cancels the
+press — freezing `Tab` inside a perfectly healthy inner dialog.
+
+So `focus-trap.ts` keeps its own module-level stack and acts only when topmost.
+Two stacks rather than one shared registry, because the two answer different
+questions: which layer a dismissal belongs to, and which container a `Tab` must
+stay inside. Phase 4's Menu-inside-Dialog depends on both.
 
 ---
 
