@@ -17,16 +17,3 @@ export {
   DialogTrigger,
   type DialogTriggerProps,
 } from './dialog';
-export { normalizeProps, type ReactPropTypes } from './normalize-props';
-export { Switch, type SwitchProps } from './switch';
-export {
-  Tabs,
-  TabsContent,
-  type TabsContentProps,
-  TabsList,
-  type TabsListProps,
-  TabsRoot,
-  type TabsRootProps,
-  TabsTrigger,
-  type TabsTriggerProps,
-} from './tabs';

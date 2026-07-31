@@ -3,15 +3,15 @@
 Living status doc. **Update it as items land** — it is the fastest way for a new
 session to learn where things stand.
 
-**Status: Phase 2 built. Nothing published yet.** Switch and Tabs exist in core,
-Vue and React, with 319 unit tests and 45 browser tests green, docs pages, and
-both embed routes live.
+**Status: Phase 3 built. Nothing published yet.** Switch, Tabs and Dialog exist
+in core, Vue and React, with 508 unit tests and 79 browser tests green, docs
+pages, and all three embed routes live.
 
 **Publishing is still the one human decision.** `main` carries `0.0.1` in every
 `package.json` but nothing has been pushed to npm, and nothing will until someone
-sets `RELEASE_ENABLED` deliberately — see "Human tasks". The Phase 2 changeset is
-a patch, so the next release is `0.0.2`; if `0.0.1` is never published that
-number is simply skipped on the registry, which costs nothing.
+sets `RELEASE_ENABLED` deliberately — see "Human tasks". The Phase 3 changeset is
+a **minor**, which `docs/07` reserves for the point where three components make
+the number mean something, so the next release is `0.1.0`.
 
 Phase 1 found four real defects that the layer below it could not see. They are
 recorded in detail under Phase 1 because the pattern generalises: each was
@@ -301,12 +301,94 @@ Each of these passed every test that existed when it was written.
 ---
 
 ## Phase 3 — Dialog
-- [ ] `focus-trap.ts` · `scroll-lock.ts` · `dismissable.ts` + tests
-- [ ] Core + both adapters (portal / teleport)
-- [ ] Tests: Escape, outside click, initialFocus, finalFocus, axe open **and** closed, SSR
-- [ ] **Playwright**: trap holds, focus restores, no body scroll, no layout shift, `inert`
-- [ ] Styles · docs page · `/embed/dialog` · changeset
-- [ ] Bumped to `0.1.0`
+- [x] `focusable.ts` · `focus-trap.ts` · `scroll-lock.ts` · `dismissable.ts` +
+      tests (50). `focusable.ts` is not in the roadmap's list and is in
+      `docs/01` §6 — the trap, Dialog's initial focus and Phase 4's Menu all
+      need it, so it is its own module rather than a private helper
+- [x] Core: types, anatomy, state, connect, and one `dialog.dom.ts` entry point
+      — 51 unit tests. The four utilities are composed *there*, not in the
+      adapters, because the order is the behaviour: focus moves after the trap
+      is armed and is restored after it lets go
+- [x] Both adapters, compound, portalled to `<body>` after mount
+- [x] Tests: Escape, outside click, initialFocus, finalFocus, axe open **and**
+      closed, SSR — 37 per adapter, mirrored assertion for assertion, plus 7
+      SSR/hydration tests each
+- [x] **Playwright**: trap holds, focus restores, no body scroll, no layout
+      shift, `inert` — 34 browser tests, both frameworks
+- [x] Styles · docs page · `/embed/dialog` · changeset (**minor** — `0.1.0`)
+- [x] Bumped to `0.1.0` by the changeset; the version lands when a release runs
+
+### Decisions taken before writing code
+
+`docs/03` §3 now carries eleven, with the reasoning. The load-bearing ones:
+
+- **Not the native `<dialog>`.** `showModal()` gives a menu nothing, and Phase 4
+  needs these utilities anyway; `modal={false}` gets no help from the platform
+  at all, so a native implementation would need the manual path *as well*. The
+  part of `<dialog>` worth having — `inert` on the background — is used
+  directly.
+- **Portalled after mount**, so the dialog is absent from the server-rendered
+  HTML, `defaultOpen` included. React's `createPortal` is unsupported by
+  `react-dom/server` and Vue's teleport output is collected separately from the
+  page HTML; content that must be in the initial response does not want to be a
+  dialog.
+- **`Title` and `Description` register themselves**, and each idref is emitted
+  only once its part is mounted — the third occurrence of the dangling-idref
+  defect class in this repo, after Switch's `aria-labelledby` and Tabs'
+  `aria-controls`. Worth naming as a rule: *an idref is a promise about the DOM,
+  and only the thing that renders can keep it.*
+- **Outside-press is `pointerdown`**, so selecting text inside and releasing
+  outside does not close the dialog and throw the selection away.
+- **`Escape` and outside-press are stack-aware**, and the scroll lock is
+  refcounted, so a dialog inside a dialog behaves.
+
+### Defects Phase 3 found
+
+0. **Nested dialogs froze `Tab`.** Both traps listen on the document in the
+   capture phase and the outer one runs first; with an inner dialog open, the
+   outer trap's own content is inside the subtree the inner trap just marked
+   `inert`, so it found nothing focusable, concluded there was nowhere to go,
+   and cancelled the press. Nothing in the suite covered nesting *behaviour* —
+   the nesting test that existed only inspected `inert` attributes. Fixed with a
+   module-level trap stack mirroring `dismissable.ts`; `docs/03` §3 decision 12
+   records it. Worth noting that the claim "nesting works" was already written
+   in three places before anything tested it.
+
+1. **Focus restoration worked by keyboard and silently failed by mouse.**
+   Dismissing with a press restored focus to the trigger, and then the browser's
+   own default action for that press moved focus to `<body>` — after our
+   teardown had run. Invisible to every jsdom test and to every keyboard path.
+   Fixed with `blockOutsidePress` on the dismissable layer, which cancels the
+   default for a modal layer only: a press on the page behind a *non-modal*
+   dialog should still focus what it hit.
+2. **The name check ran a render too early.** `Dialog.Title` registers from its
+   own mount hook, which schedules a re-render of the root, so at the moment the
+   content's mount hook ran the `aria-labelledby` attribute was not on the
+   element yet — and every correctly-titled dialog logged "no accessible name".
+   14 warnings across a passing suite. Core now owns the delay
+   (`scheduleDialogNameCheck`) rather than each adapter guessing at it.
+3. **`ComponentPreview` titled every example `Switch.vue`.** Hardcoded in
+   Phase 1, when there was only one component to be wrong about; the Tabs page
+   has been announcing its example as Switch's ever since. Now derived from the
+   preview's `label`.
+
+Two more were mine rather than the library's, and are recorded because the shape
+repeats: a test file that wiped `document.body` broke Testing Library's own
+cleanup for a *portalled* component (24 failures, none about the component), and
+a refcounted scroll lock leaked across tests whenever an assertion failed before
+its teardown.
+
+### Measured, this phase
+- 508 unit tests across 4 Vitest projects (was 319), 79 Playwright tests (was 45)
+- Verified by planting the defect, as in Phases 1 and 2: scoping the trap's
+  boundary to the dialog itself leaves every unit test green and fails the
+  browser suite in both frameworks. That exercise also exposed a weak assertion
+  — the first `inert` check passed for the wrong reason, because the centred
+  dialog was covering the element it probed. It now asks the browser to focus
+  the background element and checks whether that took
+- One new colour pair (`fg` on `surface-sunk`, the hovered trigger and close
+  button); the scrim is translucent and the dialog's hairline border is
+  decorative, so neither is measurable and `scripts/contrast.mjs` says so
 
 ---
 

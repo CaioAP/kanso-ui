@@ -146,21 +146,40 @@ own docs page contains a second tablist, which is what exposed the
 
 ---
 
-## Phase 3 — Dialog
+## Phase 3 — Dialog ✅
 
 First hard one. Most of the work is DOM utilities that Menu will reuse.
 
-- [ ] `core/src/dom/focus-trap.ts`, `scroll-lock.ts`, `dismissable.ts`, each tested
-- [ ] Core: open/close state, focus lifecycle, `modal` vs non-modal
-- [ ] Both adapters, including portal/teleport rendering
-- [ ] Tests: `Escape`, outside click, controlled/uncontrolled, `initialFocus`,
+- [x] `core/src/dom/focus-trap.ts`, `scroll-lock.ts`, `dismissable.ts`, each
+      tested — plus `focusable.ts`, which `docs/01` §6 names and this list did not
+- [x] Core: open/close state, focus lifecycle, `modal` vs non-modal
+- [x] Both adapters, including portal/teleport rendering
+- [x] Tests: `Escape`, outside click, controlled/uncontrolled, `initialFocus`,
       `finalFocus`, axe open **and** closed, SSR
-- [ ] **Playwright**: trap holds under repeated `Tab`, focus restores on close,
+- [x] **Playwright**: trap holds under repeated `Tab`, focus restores on close,
       body does not scroll, no layout shift, `inert` works
-- [ ] Styles, docs page, `/embed/dialog`, changeset
-- [ ] Bump to `0.1.0` — three components, API taking shape
+- [x] Styles, docs page, `/embed/dialog`, changeset
+- [x] Bump to `0.1.0` — three components, API taking shape (the changeset is
+      `minor`; the version lands when a release is actually run)
 
 **Done when:** focus behaviour is verified in a real browser, not just jsdom.
+
+**Status:** met. 508 unit tests and 79 browser tests are green, and the split
+between them is the point of this phase rather than an accident: jsdom
+implements neither `inert` nor a trustworthy focus model, so the vitest suites
+assert the *mechanism* and Playwright asserts that focus cannot actually escape.
+
+Verified by planting the defect, as in Phases 1 and 2. Scoping the trap's
+boundary to the dialog itself — a plausible-looking one-word change — leaves
+every unit test green and fails the browser suite in both frameworks. The same
+exercise showed that the first `inert` assertion passed for the wrong reason
+(the centred dialog was simply covering the element it probed), so it now asks
+the browser to focus the background element and checks whether that took.
+
+Three defects found, all recorded in `docs/09`. The most interesting is
+browser-only: dismissing with the mouse restored focus to the trigger and the
+browser's own default action then moved it to `<body>`, so focus restoration
+worked by keyboard and silently failed by mouse.
 
 ---
 

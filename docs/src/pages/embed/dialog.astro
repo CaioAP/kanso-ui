@@ -1,0 +1,109 @@
+---
+/**
+ * Minimal-chrome embed of Dialog, for the portfolio playground iframe.
+ *
+ * No nav, no sidebar, no footer, transparent background — so the host page's
+ * own surface shows through and the embed inherits its theme. See docs/06 §7
+ * and docs/08.
+ *
+ * A modal dialog inerts the rest of *this document*, which inside an iframe
+ * means the embed only, never the host page around it. That is the right
+ * boundary and it comes free: `inert` is applied to the body's children, and
+ * the iframe is its own document.
+ */
+import '@caioalfonso/kanso-styles';
+import DialogPlayground from '../../components/dialog/DialogPlayground.vue';
+import { DialogPlaygroundReact } from '../../components/dialog/DialogPlaygroundReact';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>kanso-ui — Dialog</title>
+    <script is:inline>
+      // Static build, so the theme has to be applied on the client. Reading it
+      // before paint avoids a flash of the wrong theme.
+      const theme = new URLSearchParams(location.search).get('theme');
+      if (theme === 'dark' || theme === 'light') {
+        document.documentElement.dataset.theme = theme;
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="embed">
+      <div class="embed-panel">
+        <h2>Vue 3</h2>
+        <DialogPlayground client:load />
+      </div>
+      <div class="embed-panel">
+        <h2>React 19</h2>
+        <DialogPlaygroundReact client:load />
+      </div>
+    </div>
+  </body>
+</html>
+
+<style>
+  :global(html),
+  :global(body) {
+    margin: 0;
+    /* Transparent: the host page supplies the surface. */
+    background: transparent;
+    color: var(--kanso-fg);
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  .embed {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    padding: 1.5rem;
+  }
+
+  .embed-panel {
+    flex: 1 1 18rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--kanso-fg-muted);
+  }
+
+  :global(.preview-stage) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+
+  :global(.preview-knobs) {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--kanso-line);
+    font-size: 0.8125rem;
+  }
+
+  :global(.preview-knobs legend) {
+    padding-inline: 0.25rem;
+    color: var(--kanso-fg-muted);
+  }
+
+  :global(.preview-knobs label) {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    cursor: pointer;
+  }
+</style>

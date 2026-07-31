@@ -28,6 +28,7 @@ export default defineConfig({
           items: [
             { label: 'Switch', slug: 'components/switch' },
             { label: 'Tabs', slug: 'components/tabs' },
+            { label: 'Dialog', slug: 'components/dialog' },
           ],
         },
       ],

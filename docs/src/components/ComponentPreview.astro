@@ -86,11 +86,16 @@ const { vueSource, reactSource, label } = Astro.props;
   </div>
 
   <div class="preview-source">
+    {/*
+      Titled from `label`, not hardcoded. Both filenames read "Switch" until
+      Phase 3, so the Tabs page announced its example as `Switch.vue` — a
+      component built before there was a second component to notice it with.
+    */}
     <div data-source="vue">
-      <Code code={vueSource} lang="vue" title="Switch.vue" />
+      <Code code={vueSource} lang="vue" title={`${label}.vue`} />
     </div>
     <div data-source="react" hidden>
-      <Code code={reactSource} lang="tsx" title="Switch.tsx" />
+      <Code code={reactSource} lang="tsx" title={`${label}.tsx`} />
     </div>
   </div>
 </div>
