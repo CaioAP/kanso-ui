@@ -1,7 +1,7 @@
 {
   "name": "@caioalfonso/kanso-vue",
   "version": "0.0.1",
-  "description": "Vue 3 adapter for kanso-ui — reactivity and rendering over the framework-agnostic core.",
+  "description": "Vue 3 adapter for kanso-ui \u2014 reactivity and rendering over the framework-agnostic core.",
   "license": "MIT",
   "author": "Caio Alfonso",
   "homepage": "https://github.com/CaioAP/kanso-ui#readme",
@@ -45,6 +45,18 @@
     "./menu": {
       "types": "./dist/menu.d.ts",
       "import": "./dist/menu.js"
+    },
+    "./field": {
+      "types": "./dist/field.d.ts",
+      "import": "./dist/field.js"
+    },
+    "./button": {
+      "types": "./dist/button.d.ts",
+      "import": "./dist/button.js"
+    },
+    "./card": {
+      "types": "./dist/card.d.ts",
+      "import": "./dist/card.js"
     },
     "./package.json": "./package.json"
   },

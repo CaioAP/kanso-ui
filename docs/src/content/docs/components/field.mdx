@@ -1,0 +1,223 @@
+---
+title: Field
+description: Label, description and error text wired to a control — with aria-describedby composed rather than overwritten, in the server HTML as well as after hydration.
+---
+
+import { fieldAnatomy } from '@caioalfonso/kanso-core';
+import ComponentPreview from '../../../components/ComponentPreview.astro';
+import FieldPlayground from '../../../components/field/FieldPlayground.vue';
+import { FieldPlaygroundReact } from '../../../components/field/FieldPlaygroundReact';
+import basicVue from '../../../examples/field/FieldBasic.vue?raw';
+import basicReact from '../../../examples/field/FieldBasic.tsx?raw';
+
+The accessibility wiring around a form control: a real `<label>`, optional help
+text, an error message that announces itself, and an `aria-describedby` that is
+**composed** from whichever of those exist.
+
+That composition is the reason this component exists. Overwriting the attribute
+instead of composing it is the most common form-accessibility bug there is, and
+nothing in an automated scan reports it.
+
+<ComponentPreview label="Field" vueSource={basicVue} reactSource={basicReact}>
+  <FieldPlayground slot="vue" client:visible />
+  <FieldPlaygroundReact slot="react" client:visible />
+</ComponentPreview>
+
+The two panels above are different libraries rendering the same core. Every
+attribute — the `for`, the `aria-describedby`, the `aria-invalid` — comes from
+the same `@caioalfonso/kanso-core` code; only the rendering differs.
+
+## Installation
+
+```bash
+# React
+npm i @caioalfonso/kanso-react
+# Vue
+npm i @caioalfonso/kanso-vue
+```
+
+Import from the component's own entry point so the rest of the library is never
+bundled:
+
+```ts
+import { Field, Input, Textarea } from '@caioalfonso/kanso-react/field';
+```
+
+The stylesheet is optional:
+
+```ts
+import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/field';
+```
+
+## Anatomy
+
+<table>
+  <thead>
+    <tr>
+      <th>Part</th>
+      <th>Element</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>root</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td>Carries <code>data-kanso</code> and <code>data-scope="field"</code>.</td>
+    </tr>
+    <tr>
+      <td><code>label</code></td>
+      <td><code>&lt;label&gt;</code></td>
+      <td>A native <code>for</code> pointing at the control — not <code>aria-label</code>.</td>
+    </tr>
+    <tr>
+      <td><code>control</code></td>
+      <td><code>&lt;input&gt;</code> / <code>&lt;textarea&gt;</code></td>
+      <td>Rendered by you, wired by the field.</td>
+    </tr>
+    <tr>
+      <td><code>description</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td>Included in <code>aria-describedby</code> whenever present.</td>
+    </tr>
+    <tr>
+      <td><code>error-text</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td><code>aria-live="polite"</code>. Present from first render; filled while invalid.</td>
+    </tr>
+  </tbody>
+</table>
+
+The list above comes from `fieldAnatomy`, which the library exports:
+`{fieldAnatomy.join(', ')}`.
+
+## Props
+
+All of these go on `Field`.
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `label` | node / slot | — | Rendered as a real `<label>`. |
+| `description` | node / slot | — | Help text. Always associated when present. |
+| `errorText` | node / slot | — | Shown, and associated, only while `invalid`. |
+| `invalid` | `boolean` | `false` | Sets `aria-invalid` and reveals the error. |
+| `disabled` | `boolean` | `false` | Forwarded to the control. |
+| `readOnly` | `boolean` | `false` | Forwarded to the control. |
+| `required` | `boolean` | `false` | The **native** attribute. |
+| `id` | `string` | auto | Lands on the root verbatim; other ids derive from it. |
+
+`Input` and `Textarea` take every attribute their element takes. The `id` is
+owned by the field.
+
+In Vue the three content props are **slots** — `#label`, `#description` and
+`#error-text` — which is the same information spelled the way Vue spells
+content.
+
+`Input` and `Textarea` support `v-model` in Vue and the ordinary
+`value` / `onChange` pair in React. The value is never touched by core: the
+binding is reactivity, which is the adapter's job.
+
+## Keyboard
+
+None of its own. `Input` and `Textarea` are native elements, so every key
+behaves exactly as the browser and the platform intend — which is the point of
+using them rather than building a text field out of a `<div>`.
+
+The one keyboard behaviour the component does add is not a key at all: clicking
+the label moves focus to the control, which the native `for`/`id` pair provides
+and no ARIA attribute can.
+
+## Why the content is a prop and not a child
+
+`Field.Description` as a compound child would be the fashionable shape. It is
+rejected, and by a measurement rather than a preference.
+
+A child can only tell its parent it exists *after it mounts*. For a dialog that
+is harmless — a closed dialog is not in the server HTML at all, so there is
+nothing to be late for. **A field is always rendered.** With a registration, the
+server would send a control with no `aria-describedby` and the association would
+appear only once JavaScript arrived: a form that works without JavaScript would
+ship without its description.
+
+So presence is known during render, which means it comes from a prop or a slot,
+and `Field` renders those parts itself. The cost is that the order is fixed —
+label, control, description, error — which is the order they should be in.
+
+The SSR tests in both adapters assert the attribute is in the HTML string
+itself, not merely present after hydration.
+
+## `aria-describedby`, composed
+
+Four cases, and all four are tested:
+
+| Description | Error, invalid | Result |
+|---|---|---|
+| — | — | attribute **absent** — not `""` |
+| yes | — | the description id |
+| — | yes | the error id |
+| yes | yes | both, description first |
+
+And a fifth that libraries usually get wrong — your own:
+
+```tsx
+<Field label="Bio" description="Keep it short.">
+  <Textarea aria-describedby="counter" />
+</Field>
+<span id="counter">140 characters left</span>
+```
+
+The control ends up described by **both**. Every adapter in this library applies
+core's props last so that core wins, which means an `aria-describedby` written
+by hand would otherwise be dropped in silence.
+
+## The error message
+
+The error element is in the document from the first render — empty until the
+field is invalid. That is what makes `aria-live` work: a live region announces
+*changes* to a region that was already there, and mounting the region together
+with its first message produces an announcement in some screen readers and not
+others.
+
+It is not hidden with `display: none` either. The stylesheet is optional, and an
+announcement must never depend on CSS the consumer may not have installed.
+
+## `required` is native
+
+`required`, not `aria-required`. The native attribute maps to the same
+accessibility property, and shipping both is a redundancy that can only drift.
+
+It comes with constraint validation attached: the browser will block submission
+and show its own message. If you do not want that, put `noValidate` on the form
+— the same escape hatch you would use for any native control.
+
+## Styling an invalid field
+
+Use `data-invalid`, never `:invalid`.
+
+```css
+[data-scope='field'] [data-part='control'][data-invalid] {
+  border-color: var(--kanso-danger);
+  border-width: 2px;
+}
+```
+
+`required` on an empty control matches `:invalid` the moment the page loads, so
+a stylesheet written against the pseudo-class marks every required field as
+broken before the user has typed anything. `data-invalid` follows the `invalid`
+prop, which follows your validation.
+
+The shipped stylesheet also thickens the border and puts a triangle before the
+message, so the state is never carried by colour alone.
+
+## Accessibility
+
+- The label is associated with `for`/`id`, so clicking it focuses the control —
+  a thing no ARIA attribute can do.
+- `aria-invalid="true"` only while invalid; absent otherwise.
+- The error region is `aria-live="polite"` and `aria-atomic`, so the message is
+  read whole rather than word by word.
+- One control per field. A `Field` with no control inside it logs a development
+  warning, because the label's `for` would otherwise point at nothing.
+- The placeholder is styled with `--kanso-fg-muted`, not the faint token:
+  placeholder text is small text and needs 4.5:1.

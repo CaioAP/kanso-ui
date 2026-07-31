@@ -637,17 +637,21 @@ handle it and remains rejected for v1 — see the note above.
 Not one component but a small **Field** system: the a11y wiring around a control.
 Genuinely valuable because `aria-describedby` composition is what people get wrong.
 
-**Anatomy:** `root` · `label` · `control` · `description` · `errorText`
+**Anatomy:** `root` · `label` · `control` · `description` · `error-text`
 
-**Components:** `Field` (context/wiring), `Input` (text), `Textarea`.
+**Components:** `Field` (wiring + everything around the control), `Input` (text),
+`Textarea`.
 
 **Props (Field)**
 
 | Prop | Type | Notes |
 |---|---|---|
 | `id` | `string` | Base for all derived ids |
-| `invalid` | `boolean` | Sets `aria-invalid`, reveals `errorText` |
+| `invalid` | `boolean` | Sets `aria-invalid`, reveals the error text |
 | `disabled` / `readOnly` / `required` | `boolean` | Forwarded to the control |
+| `label` | node / slot | Rendered as a real `<label>`. Its presence is known at render — decision 1 |
+| `description` | node / slot | Optional help text |
+| `errorText` | node / slot | Optional. Shown only while `invalid` |
 
 **The wiring, which is the whole point:**
 
@@ -656,12 +660,128 @@ Genuinely valuable because `aria-describedby` composition is what people get wro
   description-id and error-id are present. Both, one, or neither — computed, never
   hardcoded. Getting this wrong (overwriting rather than composing) is the single
   most common form-a11y bug.
-- `aria-invalid="true"` when invalid. `aria-required` when required.
+- `aria-invalid="true"` when invalid. `required` is the native attribute —
+  decision 5 records why, and corrects the `aria-required` this line used to say.
 - Error text lives in a container with `aria-live="polite"` so it is announced when
   it appears after validation.
 
 **Non-colour cue:** an invalid field gets a thicker border and an icon, plus the
 error text itself — never a red outline alone.
+
+### Decisions taken before implementation (Phase 5)
+
+Eight questions, settled here rather than discovered in a test, per `docs/01` §12
+step 1. The first one decides the component's whole shape, and it is decided by
+server rendering rather than by taste.
+
+**1. Presence is a prop, not a registration. This is why `Field` renders the
+label, description and error itself.**
+
+Dialog learns that a `Dialog.Title` exists by having the title register with the
+root from its own mount hook (§3 decision 4). Field cannot copy that, and the
+reason is the trap named first in `CLAUDE.md`:
+
+A dialog is usually closed during a server render, so nothing about it is in the
+HTML and there is nothing for registration to be late for. **A field is always
+rendered.** If the control's `aria-describedby` only appears once a child has
+mounted and told the root it exists, then the server sends a control with no
+`aria-describedby`, and the attribute materialises when JavaScript arrives. Two
+costs, and the second is the serious one:
+
+- Between HTML and hydration the field is *wired wrong*, not merely unstyled. A
+  form that works without JavaScript — which is the reason to server-render it —
+  ships without its description association.
+- Every adapter has to be written so the first client render matches the server's
+  exactly, or the framework reports a mismatch. That is a constraint nothing in
+  the test suite states out loud.
+
+So the presence of each part is known **synchronously, during render**, the way
+Switch already knows whether it has a label (`hasLabel` comes from a prop, not a
+registration). Concretely: `Field` takes `label`, `description` and `errorText`
+as a node prop in React and a named slot in Vue, and renders those parts itself.
+`Input` and `Textarea` read the control props out of context — reading downward
+during render is synchronous and server-safe; only writing upward is not.
+
+The cost is that Field fixes the order of its parts: label, control, description,
+error. That is the order they should be in, so the loss is small, and it buys a
+component whose server HTML is complete.
+
+**2. `aria-describedby` is composed in core — including the consumer's own.**
+
+The four cases the roadmap names (description only, error only, both, neither)
+are one filter and one join. Two details that a naive implementation gets wrong,
+and both are asserted:
+
+- With neither part present the attribute must be **absent**, not `""`. An empty
+  `aria-describedby` is not the same as no `aria-describedby`, and a test written
+  as `toBe('')` passes on the broken version.
+- A consumer writing `<Input aria-describedby="char-count" />` must end up
+  described by their id **as well as** ours. Every adapter here applies core's
+  props last so that core wins, which means a consumer attribute of this shape is
+  otherwise dropped silently — the same class of defect this component exists to
+  prevent. So the control's prop getter takes the consumer's value and appends it
+  after the field's own ids.
+
+**3. The error element is rendered whenever `errorText` is given; only its
+contents are conditional.**
+
+A live region announces *changes* to a region that was already there. Mounting
+the region and its text in the same commit is the standard way to get an
+announcement that fires in some screen reader and browser pairs and not others.
+So the element exists from first render, and the text goes in and out of it.
+
+Not by `display: none` either. The stylesheet is optional — a component whose
+announcements depend on a stylesheet the consumer may not have installed is not
+headless.
+
+**4. One element is both the live region and the described element.**
+
+The alternative is a wrapper carrying `aria-live` with the referenced text
+inside it, so that appearing and being read on focus are two separate events.
+Both shapes double-announce for a user who is focused on the field when the
+error appears; splitting them only changes which text is repeated. One element
+is simpler and is what `docs/03` already described, so it stands — recorded as a
+judgement, not a measurement.
+
+**5. `required` is the native attribute. No `aria-required`.**
+
+The native attribute is mapped to the same accessibility property, so shipping
+both is a redundancy that can only ever drift. Native also brings constraint
+validation, which is the honest trade to state: the browser will block submission
+and show its own bubble. A consumer who does not want that puts `noValidate` on
+the form — the same escape hatch they would use for any native control.
+
+This corrects the `aria-required` line in the wiring list above.
+
+**6. The stylesheet keys off `data-invalid`, never `:invalid`.**
+
+`required` on an empty control matches `:invalid` immediately, so a stylesheet
+written against the pseudo-class flags every required field as broken before the
+user has typed a character. `data-invalid` comes from the `invalid` prop, which
+means it appears when the consumer's validation says so and not before. Related
+in kind to the Phase 1 finding that `readonly` silently disables `required`
+(§1): native form state is full of attributes that mean more than they say.
+
+**7. One control per Field, and a dev-time warning when there is none.**
+
+The label's `for` and the control's id are two halves of one association, and
+core emits the `for` unconditionally because it cannot see whether a control was
+rendered. A `Field` containing no `Input` therefore has a dangling `for`, which
+is the fifth appearance of this defect class in the project and the first one
+that no design change can rule out.
+
+So it is caught the way Dialog catches a missing accessible name: a dev-only
+check, scheduled a tick after mount, that warns when no element carries the
+control id. It is the only reason `field.dom.ts` exists — there are no
+listeners, no focus management and no reducer anywhere in this component.
+
+**8. `Input` and `Textarea` are two components, which is why the core contract
+gains a `textarea` kind.**
+
+`PropTypes` and `NormalizeProps` grow a fifth entry (`docs/01` §3). A textarea is
+not an input: it has `rows`, it has no `type`, and in React its props type is a
+different interface. Routing it through `element` would type-check by being
+loose, and the looseness is the thing the boundary exists to avoid.
 
 ---
 
@@ -683,11 +803,85 @@ Presentational. **Thin or absent core** — do not manufacture a state machine f
   hidden text or `aria-label`).
 - Minimum 44 × 44 px hit area, including `size="sm"`, via padding.
 
+### Decisions taken before implementation (Phase 5)
+
+**1. A `connect` with no reducer, and the signature says so.**
+
+Every other component's core exports `initial<X>State`, a reducer and
+`connect(state, send, normalize)`. Button has no transitions of its own: every
+input is a prop. So it exports `connectButton(state, normalize)` — two
+arguments — and there is no `ButtonEvent`, no `send`, and no reducer test file.
+Inventing an event union to keep the shapes matching would be ceremony that
+claims behaviour the component does not have. Card is the same, one step
+further (§7).
+
+This does not weaken rule 2 in `CLAUDE.md`. The attributes and the activation
+guard still live in core; there is simply no state machine above them.
+
+**2. The consumer's `onClick` is composed in core, because otherwise it
+disappears.**
+
+Every adapter renders `{...consumerAttributes} {...api.props}` so that core's
+props win — which is right, and which means a core-supplied `onClick` silently
+replaces the consumer's. A Button whose `onClick` never fires is a broken
+component that renders perfectly and passes an axe scan.
+
+So `connectButton` takes the consumer's handler as an input and returns the
+composed one: while `loading` it calls `preventDefault` (so a `type="submit"`
+button cannot submit the form) and `stopPropagation`, and does not call the
+handler; otherwise it calls it. The parameter is typed structurally as
+`{ preventDefault(): void; stopPropagation(): void }`, which is true of both a
+React synthetic event and a native one and imports nothing.
+
+Two tests, and both fail loudly if the composition is dropped: the handler fires
+on an ordinary press, and does not fire while loading.
+
+**3. `loading` sets `aria-busy` only — not `aria-disabled`.**
+
+`aria-disabled="true"` would announce the button as unavailable, which is a
+worse description of a button that is working on your last press than "busy".
+The button stays focusable either way; the activation guard in decision 2 is
+what actually blocks it.
+
+**4. The label fades with `opacity`, never `visibility` or `display`.**
+
+`visibility: hidden` and `display: none` both remove the element from the
+accessibility tree, so the obvious way to swap a label for a spinner also
+deletes the button's accessible name. `opacity: 0` leaves the name intact. This
+is why the anatomy has a `label` part at all: there has to be an element to
+fade that is not the button itself.
+
+**5. 44px is a floor at every size. `sm` is narrower and lighter, not shorter.**
+
+The three sizes differ in font size and inline padding; all of them keep
+`min-block-size: 44px`. The alternative — a genuinely smaller box with the hit
+area extended by a transparent pseudo-element — is a real technique, and it is
+rejected here because it makes the target invisible to both the reader of the
+CSS and to a Playwright `boundingBox()` assertion. A size scale that quietly
+bottoms out above the density some designs want is the honest trade.
+
+Note this is a stricter floor than the 24 × 24 px of WCAG 2.2 SC 2.5.8 that the
+Menu and Switch suites assert; 44 is SC 2.5.5 (AAA), and for a button it costs
+nothing.
+
 ---
 
 ## 7. Card — *Phase 5*
 
-Pure layout. **No core module.** Included for completeness of the visual set.
+Pure layout. Included for completeness of the visual set.
+
+> **Corrected during Phase 5.** This section said "**No core module.**" It has
+> one: `card.anatomy.ts` and a `connectCard(state, normalize)` of about twenty
+> lines, with no state, no events and no reducer.
+>
+> The line was written to prevent a state machine being manufactured for a
+> `<div>`, and that instruction still holds. But "no core module" would have put
+> the `data-kanso`, `data-scope` and `data-part` attributes in two hand-written
+> adapters, which is precisely the arrangement that drifts: nothing fails when
+> the Vue card says `data-part="body"` and the React card says
+> `data-part="content"`, until a stylesheet meets one of them. Core owns data
+> attributes (`docs/01` §1), and Card is not an exception to that — it is an
+> exception to having behaviour.
 
 **Anatomy:** `root` · `header` · `body` · `footer`
 
@@ -710,6 +904,17 @@ One real link takes the whole card's click area via a pseudo-element. Screen
 readers get one link with a sensible name; the tab order stays sane; text inside
 remains selectable.
 
+The pattern has one cost, and the docs page must say it rather than sell the
+trick: the overlay sits above the card's text, so **a second interactive element
+inside the card is unreachable by pointer**. That is not a bug to be worked
+around with `z-index` — it is the pattern telling you the card has two actions
+and therefore should not be one big link. `docs/06`'s Card page shows both the
+whole-card link and the two-action layout that must not use it.
+
+`as` is an adapter-level prop. Core emits the part attributes; which tag they
+land on is a rendering decision, and rendering is the adapters' half of the
+contract.
+
 ---
 
 ## Summary
@@ -721,5 +926,5 @@ remains selectable.
 | Dialog | 3 | Heavy | `focus-trap`, `scroll-lock`, `dismissable` |
 | Menu | 4 | Heaviest | `typeahead` |
 | Inputs | 5 | Medium | id/`describedby` composition |
-| Button | 5 | None | — |
-| Card | 5 | None | — |
+| Button | 5 | Thin — `connect` only | — |
+| Card | 5 | Thin — `connect` only | — |

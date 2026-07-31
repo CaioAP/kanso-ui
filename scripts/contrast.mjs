@@ -189,6 +189,28 @@ const pairs = [
   // from the contrast minimum, and holding them to 3:1 anyway is the difference
   // between "unavailable" and "unreadable".
   ['fg-faint', 'surface', 3.0, 'disabled menu item'],
+  // Field. The label is fg, the description is fg-muted and the control border
+  // is line-strong — all above, on both bg and surface. Two rows are new, and
+  // they are the same token used two different ways:
+  //
+  //   - the error message is *text*, so it needs 4.5:1 and not the 3:1 the
+  //     `danger` row further up asks of it as a border;
+  //   - the invalid border sits on a surface as well as on the page.
+  //
+  // The placeholder is deliberately fg-muted rather than fg-faint: it is small
+  // text, so 3:1 does not cover it, and the lighter convention is the wrong one.
+  ['danger', 'bg', 4.5, 'error message text'],
+  ['danger', 'surface', 4.5, 'error message text on a surface'],
+  ['danger', 'surface', 3.0, 'invalid control border on a surface'],
+  // Button. Solid is on-accent on accent and accent-hover, both above; outline
+  // and ghost are fg on bg and on surface, with a line-strong border, also
+  // above; the hovered background is surface-sunk, covered by the dialog row.
+  // Disabled is a native `disabled` rendered at reduced opacity, and WCAG
+  // exempts inactive controls from the minimum — the one place in this list
+  // where "not measured" is the correct answer rather than an omission.
+  //
+  // Card adds nothing: fg and fg-muted on surface, a decorative --kanso-line
+  // border, and a focus ring already measured as accent on surface.
 ];
 
 let failures = 0;

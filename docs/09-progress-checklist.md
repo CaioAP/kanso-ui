@@ -3,10 +3,14 @@
 Living status doc. **Update it as items land** — it is the fastest way for a new
 session to learn where things stand.
 
-**Status: Phase 4 built. Nothing published yet.** Switch, Tabs, Dialog and Menu
-exist in core, Vue and React, with 682 unit tests and 114 browser tests green,
-docs pages, and all four embed routes live. Every DOM utility the v1 component
-list needs is now written — Phase 5 adds no new one.
+**Status: Phase 5 built — all seven v1 components exist. Nothing published yet.**
+Switch, Tabs, Dialog, Menu, Field (with Input and Textarea), Button and Card are
+in core, Vue and React, with 886 unit tests and 171 browser tests green, docs
+pages, and seven embed routes live.
+
+The component list from `docs/00` is complete. What remains before `1.0.0` is
+Phase 5.1 (docs polish) and Phase 6 (API review, bundle size, the semver
+promise).
 
 **Publishing is still the one human decision.** `main` carries `0.0.1` in every
 `package.json` but nothing has been pushed to npm, and nothing will until someone
@@ -475,11 +479,147 @@ decision 5 claimed as proof of the layer stack and nothing had exercised.
 ---
 
 ## Phase 5 — Inputs · Button · Card
-- [ ] `Field` + `Input` + `Textarea`
-- [ ] `aria-describedby` composition tested: description only / error only / both / neither
-- [ ] Button: variants, sizes, `loading` → `aria-busy` and still focusable, 44px target
-- [ ] Card: layout + docs teaching the whole-card link pattern
-- [ ] Styles · docs pages · embed routes · changesets
+- [x] `Field` + `Input` + `Textarea` — core is a `connect` and one dev-time
+      check, with **no reducer and no events**. Every input is a prop the
+      consumer owns, so `connectField(state, normalize)` takes two arguments and
+      says so
+- [x] `aria-describedby` composition tested: description only / error only /
+      both / neither — and the fifth case the roadmap did not name, the
+      consumer's own `aria-describedby`, composed rather than dropped
+- [x] Button: variants, sizes, `loading` → `aria-busy` and still focusable, 44px
+      target at every size
+- [x] Card: layout + docs teaching the whole-card link pattern *and* its cost
+- [x] Styles · docs pages · embed routes · changesets (three, all `patch`)
+
+### The decision that shaped Field
+
+`docs/03` §5 now carries eight decisions. One of them decides the component:
+
+**Presence is a prop, not a registration — because a field is always
+server-rendered.** Dialog learns that a `Dialog.Title` exists by having the
+title register with the root from its own mount hook. Field cannot copy that. A
+closed dialog is absent from the server HTML, so registration has nothing to be
+late for; a field is always in the HTML and always wired, so a registration
+means the server sends a control with **no `aria-describedby`** and the
+association appears only when JavaScript does. A form that works without
+JavaScript would ship without its description.
+
+So `Field` takes `label` / `description` / `errorText` as node props in React
+and as the `#label` / `#description` / `#error-text` slots in Vue, and renders
+those parts itself. Reading context downward during render is synchronous and
+server-safe; only writing upward is not. The cost is that the part order is
+fixed — which is the order they should be in.
+
+The SSR tests assert the attribute is in the **HTML string**, not merely present
+after hydration. "Hydrates without warnings" would have passed on the broken
+design: a registration produces a post-hydration update, not a mismatch.
+
+The others worth carrying forward:
+
+- **`aria-describedby` composes the consumer's own ids.** Every adapter applies
+  core's props last so core wins, which means a hand-written `aria-describedby`
+  on an `Input` is otherwise dropped silently — the exact defect class this
+  component exists to prevent. The control's prop getter takes it and appends.
+- **With nothing to describe the attribute is absent, not `""`.** The naive test
+  (`toBe('')`) passes on the broken version, so the assertion is on absence.
+- **The error element is rendered before it has a message.** A live region
+  announces *changes* to a region already in the document; mounting the region
+  together with its first message announces in some screen readers and not
+  others. Not `display: none` either — the stylesheet is optional, and an
+  announcement must never depend on it.
+- **`required` is native, and the stylesheet keys off `data-invalid`.** These
+  two are connected: native `required` on an empty control matches `:invalid`
+  from page load, so a stylesheet written against the pseudo-class marks every
+  required field as broken before the user types.
+
+### Button and Card, and what "thin core" means
+
+Neither has a reducer, and the signatures say so — `connectButton(state,
+normalize)`, `connectCard(normalize)`. Inventing an event union to keep the
+three-argument shape would claim behaviour the components do not have.
+
+Two things still had to live in core, and both are the reason "no core module"
+was the wrong instruction:
+
+1. **Button's activation guard.** The consumer's `onClick` is passed *into*
+   `connectButton`, because every adapter renders `{...consumerAttrs}
+   {...api.props}` so core wins — a core-supplied `onClick` would otherwise
+   delete the consumer's, and a button whose handler never fires renders
+   perfectly and passes an axe scan.
+2. **Card's attributes.** `docs/03` §7 said "no core module" and is corrected.
+   Left to two hand-written adapters, one of them eventually writes
+   `data-part="content"`, and nothing fails until a stylesheet meets it.
+
+Also settled: `loading` sets `aria-busy` **only**, not `aria-disabled` — "busy"
+is a truer description of a button working on your last press than
+"unavailable"; the label is faded with `opacity` because `visibility: hidden`
+and `display: none` take the accessible name with them; and 44px is a floor at
+every size, so `sm` is narrower and lighter rather than shorter.
+
+### The contract changed
+
+`PropTypes` and `NormalizeProps` gained a fifth entry, `textarea`. A textarea is
+not an input — it has `rows`, no `type`, and a different props interface in
+React — and routing it through `element` would have type-checked by being loose.
+`docs/01` §3's listing was updated in the same commit.
+
+`ButtonState` is also the library's first *generic* state type. React types a
+button's `onClick` as taking a full `MouseEvent`, and under `strictFunctionTypes`
+that is not assignable to a handler taking the two methods core actually calls.
+The type parameter lets the React adapter narrow it and hand the handler
+straight through, with no cast in either adapter.
+
+### Verified by planting the defect
+
+Two plants, one line each, and both failed in **core and in both adapters**:
+
+1. `'aria-describedby': fieldDescribedBy(state)` — dropping `options.describedBy`
+   — failed 2 core tests and the "composed with the field's, not replaced by it"
+   test in each adapter.
+2. Removing `onClick?.(event)` from Button's composed handler — failed 2 core
+   tests and "calls the consumer's handler" in each adapter.
+
+### Defects Phase 5 found
+
+1. **`readOnly` reaches Vue's DOM as a property on the client and as the literal
+   attribute `readOnly="true"` from the server renderer.** Vue chooses between a
+   property and an attribute with `key in el`, and `readOnly` *is* a property of
+   an `<input>`; meanwhile the server renderer's boolean-attribute list is
+   lowercase, so it never takes the boolean path. The same shape of client/server
+   divergence the event-name folding exists to prevent. Fixed by giving Vue's
+   normalizer a `propMap` (`readOnly` → `readonly`), mirroring React's
+   `class`/`for` map, and asserted in the SSR suite.
+2. **`v-model` on the Vue `Input` was inert, and the only artefact that showed
+   it was the one nothing runs.** `v-model` compiles to a `modelValue` prop and
+   an `update:modelValue` listener; a component that declares neither receives
+   both as *fallthrough attrs* and spreads them onto the native element, where
+   `modelValue` becomes a junk attribute and the listener waits for an event no
+   DOM element fires. Typing did nothing, silently.
+
+   The interesting part is why the suite could not see it. Example files are
+   only ever read as `?raw` text for the copyable source block, so Astro never
+   compiles them and `tsc` never reads them; the playground has no value
+   binding; and the one Vue test that touched a value used an unbound
+   `Textarea`. **The single artefact a visitor copies was the single artefact
+   nothing executed.** Fixed by declaring the prop and the emit in both Vue
+   controls — reactivity binding is the adapter's half of the contract, and core
+   still touches no value — and by adding the binding tests to both frameworks,
+   because "it works in React" is exactly how nobody notices it is broken in Vue.
+3. **`scrollable-region-focusable` on the Card page, again.** A code block whose
+   longest line overflowed horizontally is a scrollable region with no keyboard
+   access. Third appearance of the Phase 2 finding, and it surfaced only in the
+   React panel — the failure is width-dependent, which is why it looks flaky.
+   Fixed at the source by shortening the example.
+
+### Measured, this phase
+- 886 unit tests across 4 Vitest projects (was 682), 171 Playwright tests
+  (was 114)
+- Three new colour pairs, all measured in both themes: `danger` as *text* at
+  4.5:1 on `bg` and on `surface` (the existing row only held it to 3:1 as a
+  border), and the invalid border on a surface. `pnpm contrast` passes
+- One pair deliberately **not** measured, and the list says so: a disabled
+  button is a native `disabled` at reduced opacity, and WCAG exempts inactive
+  controls from the minimum
 
 ---
 

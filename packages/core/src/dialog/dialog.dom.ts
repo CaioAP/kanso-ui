@@ -1,4 +1,5 @@
 import { createDismissable } from '../dom/dismissable';
+import { isDevelopment } from '../dom/env';
 import { trapFocus } from '../dom/focus-trap';
 import { getFocusableElements } from '../dom/focusable';
 import { lockScroll } from '../dom/scroll-lock';
@@ -31,21 +32,6 @@ export interface ActivateDialogOptions {
   getTrigger?: () => HTMLElement | null | undefined;
   /** Called when the user dismisses. The adapter turns this into a CLOSE event. */
   onClose: () => void;
-}
-
-/**
- * Development-only diagnostics, without importing anything Node-shaped.
- *
- * Reading `process.env.NODE_ENV` directly is the usual way and throws in a
- * browser that has no `process` — the bundler is *expected* to have replaced it,
- * and nothing guarantees the consumer's did. Going through `globalThis` makes
- * the absence a value rather than a crash, and treats it as development, which
- * is the safe direction for a warning.
- */
-function isDevelopment(): boolean {
-  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process
-    ?.env?.NODE_ENV;
-  return env !== 'production';
 }
 
 /**

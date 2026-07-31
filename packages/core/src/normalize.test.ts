@@ -7,16 +7,22 @@ type TestPropTypes = PropTypes<Record<string, unknown>>;
 describe('createNormalizer', () => {
   it('exposes every element kind the boundary defines', () => {
     const normalize = createNormalizer<TestPropTypes>((props) => props);
-    expect(Object.keys(normalize).sort()).toEqual(['button', 'element', 'input', 'label']);
+    expect(Object.keys(normalize).sort()).toEqual([
+      'button',
+      'element',
+      'input',
+      'label',
+      'textarea',
+    ]);
   });
 
   it('routes every element kind through the supplied translator', () => {
     const translate = vi.fn((props) => ({ ...props, seen: true }));
     const normalize = createNormalizer<TestPropTypes>(translate);
 
-    for (const kind of ['element', 'button', 'input', 'label'] as const) {
+    for (const kind of ['element', 'button', 'input', 'textarea', 'label'] as const) {
       expect(normalize[kind]({ id: kind })).toEqual({ id: kind, seen: true });
     }
-    expect(translate).toHaveBeenCalledTimes(4);
+    expect(translate).toHaveBeenCalledTimes(5);
   });
 });

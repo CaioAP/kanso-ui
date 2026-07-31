@@ -4,12 +4,14 @@ import type {
   HTMLAttributes,
   InputHTMLAttributes,
   LabelHTMLAttributes,
+  TextareaHTMLAttributes,
 } from 'react';
 
 export interface ReactPropTypes extends PropTypes {
   element: HTMLAttributes<HTMLElement>;
   button: ButtonHTMLAttributes<HTMLButtonElement>;
   input: InputHTMLAttributes<HTMLInputElement>;
+  textarea: TextareaHTMLAttributes<HTMLTextAreaElement>;
   label: LabelHTMLAttributes<HTMLLabelElement>;
 }
 

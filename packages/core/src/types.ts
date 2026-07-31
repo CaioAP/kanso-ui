@@ -27,6 +27,14 @@ export interface PropTypes<T = any> {
   element: T;
   button: T;
   input: T;
+  /**
+   * Separate from `input` because a textarea is not one: it has `rows`, it has
+   * no `type`, and React types the two with different interfaces. Routing it
+   * through `element` would type-check by being loose, and that looseness is
+   * what this boundary exists to prevent. Added in Phase 5; see `docs/03` §5
+   * decision 8.
+   */
+  textarea: T;
   label: T;
 }
 
@@ -38,5 +46,6 @@ export interface NormalizeProps<T extends PropTypes> {
   element: (props: Dict) => T['element'];
   button: (props: Dict) => T['button'];
   input: (props: Dict) => T['input'];
+  textarea: (props: Dict) => T['textarea'];
   label: (props: Dict) => T['label'];
 }

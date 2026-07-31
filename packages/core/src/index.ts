@@ -1,4 +1,18 @@
 export {
+  type ButtonApi,
+  type ButtonPart,
+  type ButtonPressEvent,
+  type ButtonSize,
+  type ButtonState,
+  type ButtonStateInit,
+  type ButtonType,
+  type ButtonVariant,
+  buttonAnatomy,
+  connectButton,
+  initialButtonState,
+} from './button';
+export { type CardApi, type CardPart, cardAnatomy, connectCard } from './card';
+export {
   type ActivateDialogOptions,
   activateDialog,
   assertDialogName,
@@ -41,6 +55,22 @@ export {
   type Typeahead,
   type TypeaheadMatchOptions,
 } from './dom/typeahead';
+export {
+  assertFieldControl,
+  connectField,
+  type FieldApi,
+  type FieldControlOptions,
+  type FieldIds,
+  type FieldPart,
+  type FieldState,
+  type FieldStateInit,
+  fieldAnatomy,
+  fieldDescribedBy,
+  fieldIds,
+  fieldShowsErrorText,
+  initialFieldState,
+  scheduleFieldControlCheck,
+} from './field';
 export {
   type ActivateMenuOptions,
   activateMenu,

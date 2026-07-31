@@ -1,0 +1,64 @@
+/**
+ * Card.
+ *
+ * Scoped by [data-scope='card']. Layout only — the component has no state, so
+ * this file has no state selectors.
+ *
+ * The last rule is the useful part: the whole-card link. It is opt-in, because
+ * it has a cost that the docs page states plainly — the overlay covers the
+ * card, so a *second* interactive element inside becomes unreachable by
+ * pointer. That is not a bug to route around with z-index; it is the pattern
+ * telling you the card has two actions and should not be one big link.
+ */
+
+[data-kanso][data-scope='card'] {
+  /* The anchor for the overlay below. Harmless when it is not used. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: var(--kanso-border) solid var(--kanso-line);
+  border-radius: var(--kanso-radius);
+  background: var(--kanso-surface);
+  color: var(--kanso-fg);
+}
+
+[data-scope='card'] [data-part='header'] {
+  padding: var(--kanso-space-4) var(--kanso-space-4) 0;
+}
+
+[data-scope='card'] [data-part='body'] {
+  flex: 1;
+  padding: var(--kanso-space-4);
+  color: var(--kanso-fg-muted);
+}
+
+[data-scope='card'] [data-part='footer'] {
+  display: flex;
+  align-items: center;
+  gap: var(--kanso-space-3);
+  padding: 0 var(--kanso-space-4) var(--kanso-space-4);
+}
+
+/*
+ * One real link takes the whole card's click area. Screen readers get one link
+ * with a sensible name, the tab order stays sane, and the text inside the card
+ * remains selectable — which is what makes this better than a click handler on
+ * the container or a link wrapped around everything.
+ *
+ * The focus ring is moved onto the card, because the link's own box is only as
+ * big as its text and a ring there would point at the wrong thing.
+ */
+[data-kanso][data-scope='card']:has(a[data-card-link]:focus-visible) {
+  outline: var(--kanso-focus-ring) solid var(--kanso-focus-color);
+  outline-offset: var(--kanso-focus-ring-offset);
+}
+
+[data-scope='card'] a[data-card-link]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+[data-scope='card'] a[data-card-link]:focus-visible {
+  outline: none;
+}

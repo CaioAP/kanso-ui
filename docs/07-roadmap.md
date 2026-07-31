@@ -217,21 +217,44 @@ and the browser suite in both frameworks.
 
 ---
 
-## Phase 5 — Inputs, Button, Card
+## Phase 5 — Inputs, Button, Card ✅
 
 Three at once because Button and Card are nearly free.
 
-- [ ] **Inputs:** `Field` + `Input` + `Textarea`; correct **composed**
+- [x] **Inputs:** `Field` + `Input` + `Textarea`; correct **composed**
       `aria-describedby`; `aria-invalid`; `aria-live` error text
-- [ ] Tests specifically for describedby composition: description only, error only,
-      both, neither
-- [ ] **Button:** variants, sizes, `loading` → `aria-busy` while staying focusable,
+- [x] Tests specifically for describedby composition: description only, error only,
+      both, neither — plus a fifth the list did not name, the consumer's own
+      `aria-describedby`, which every adapter would otherwise drop in silence
+- [x] **Button:** variants, sizes, `loading` → `aria-busy` while staying focusable,
       44px hit area
-- [ ] **Card:** layout only; docs must teach the pseudo-element whole-card link
-      pattern and warn against nested interactives
-- [ ] Styles, docs pages, embed routes, changesets
+- [x] **Card:** layout only; docs teach the pseudo-element whole-card link
+      pattern, warn against nested interactives, and state what the pattern
+      costs
+- [x] Styles, docs pages, embed routes, changesets
 
 **Done when:** all seven components are done by the `docs/00` §8 definition.
+
+**Status:** met, for all seven. 886 unit tests and 171 browser tests are green.
+
+The interesting work was Field, and it was decided by a constraint rather than
+by taste. A `Field.Description` registering with its root from a mount hook —
+the shape Dialog uses — cannot work here, because a field is *always* rendered:
+the server would send a control with no `aria-describedby` and the association
+would appear only when JavaScript did. So presence is a prop (React) or a slot
+(Vue), known during render, and `Field` renders those parts itself. Both SSR
+suites assert the attribute is in the HTML string, not merely present after
+hydration. `docs/03` §5 decision 1.
+
+Verified by planting the defect, as in every phase since Phase 1. Two plants,
+both one line: dropping the consumer's ids from the `aria-describedby`
+composition, and dropping the consumer's handler from Button's composed
+`onClick`. Each failed in core *and* in both adapter suites.
+
+The specs were corrected twice more before any code was written — `docs/03` §5
+said `aria-required` where the native attribute is right, and §7 said Card has
+"no core module" where it has a twenty-line `connect`. Both corrections are
+recorded where they apply.
 
 ---
 

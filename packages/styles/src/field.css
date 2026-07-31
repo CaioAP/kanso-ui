@@ -1,0 +1,133 @@
+/**
+ * Field, Input and Textarea.
+ *
+ * Scoped by [data-scope='field']. One scope root; nothing is portalled.
+ *
+ * Two rules here carry accessibility rather than looks, and both are explained
+ * where they appear: the invalid state is keyed off `data-invalid` and never
+ * off `:invalid`, and the error element is never hidden with `display: none`.
+ */
+
+[data-kanso][data-scope='field'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kanso-space-2);
+}
+
+[data-scope='field'] [data-part='label'] {
+  color: var(--kanso-fg);
+  font-weight: 500;
+}
+
+[data-scope='field'] [data-part='label'][data-required]::after {
+  /*
+   * Generated content is announced by modern screen readers, so the rule this
+   * file follows is: a pseudo-element may only ever repeat something the user
+   * is already being told.
+   *
+   * An asterisk qualifies. The requirement is carried by the native `required`
+   * attribute; this is the same fact for sighted users, and hearing "star"
+   * after "Email required" costs a syllable. The error icon below does *not*
+   * qualify, which is why it is drawn rather than typed.
+   */
+  content: '*';
+  margin-inline-start: 0.25em;
+  color: var(--kanso-danger);
+}
+
+[data-scope='field'] [data-part='control'] {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  /* WCAG 2.2 SC 2.5.8 wants 24x24 CSS pixels; 44px is the comfortable target. */
+  min-height: 2.75rem;
+  padding: var(--kanso-space-2) var(--kanso-space-3);
+  border: var(--kanso-border) solid var(--kanso-line-strong);
+  border-radius: var(--kanso-radius-sm);
+  background: var(--kanso-bg);
+  color: var(--kanso-fg);
+  /* The library sets no font-family; the control must not impose one either. */
+  font: inherit;
+}
+
+/*
+ * A textarea is the same control with a different shape: it grows, so the fixed
+ * min-height above would fight the `rows` the consumer asked for.
+ */
+[data-scope='field'] textarea[data-part='control'] {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+[data-scope='field'] [data-part='control']::placeholder {
+  /*
+   * --kanso-fg-muted, not --kanso-fg-faint. Placeholder text is small text, so
+   * it needs 4.5:1, and the faint token is measured only to 3:1. A lighter
+   * placeholder is the convention and it is the convention that is wrong.
+   */
+  color: var(--kanso-fg-muted);
+  opacity: 1;
+}
+
+/*
+ * The invalid state comes from `data-invalid`, which comes from the `invalid`
+ * prop — never from `:invalid`.
+ *
+ * `required` on an empty control matches `:invalid` from the moment the page
+ * loads, so a stylesheet written against the pseudo-class flags every required
+ * field as broken before the user has typed a character. See docs/03 §5
+ * decision 6.
+ *
+ * The border also gets thicker, so the state is not carried by colour alone.
+ */
+[data-scope='field'] [data-part='control'][data-invalid] {
+  border-color: var(--kanso-danger);
+  border-width: 2px;
+}
+
+[data-scope='field'] [data-part='control'][data-disabled] {
+  border-color: var(--kanso-line);
+  background: var(--kanso-surface-sunk);
+  color: var(--kanso-fg-faint);
+  cursor: not-allowed;
+}
+
+[data-scope='field'] [data-part='control'][data-readonly] {
+  background: var(--kanso-surface);
+}
+
+[data-scope='field'] [data-part='description'] {
+  color: var(--kanso-fg-muted);
+  font-size: 0.875rem;
+}
+
+/*
+ * The error element is always in the document when a message was supplied, and
+ * empty until the field is invalid — that is what makes the live region
+ * announce. So it is styled by whether it has content, not by whether it is
+ * "shown", and it is never `display: none`: the stylesheet is optional, and an
+ * announcement must not depend on it.
+ */
+[data-scope='field'] [data-part='error-text'] {
+  display: flex;
+  align-items: baseline;
+  gap: var(--kanso-space-1);
+  color: var(--kanso-danger);
+  font-size: 0.875rem;
+}
+
+/*
+ * Drawn with borders rather than typed as a character, per the rule above: a
+ * "⚠" would introduce a word the message does not contain, and a warning sign
+ * announced before an error a screen reader is already reading out is noise
+ * rather than information.
+ */
+[data-scope='field'] [data-part='error-text']:not(:empty)::before {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 0;
+  height: 0;
+  border-inline: 0.32em solid transparent;
+  border-block-end: 0.55em solid currentcolor;
+}
