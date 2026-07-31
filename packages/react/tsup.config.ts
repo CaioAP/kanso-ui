@@ -6,6 +6,7 @@ export default defineConfig({
     index: 'src/index.ts',
     switch: 'src/switch/index.ts',
     tabs: 'src/tabs/index.ts',
+    dialog: 'src/dialog/index.ts',
   },
   format: ['esm'],
   dts: true,

@@ -174,6 +174,14 @@ const pairs = [
   // 2px rule that marks selection is accent on bg and on surface, covered by the
   // SC 1.4.11 rows. The list hairline is --kanso-line, which is decorative and
   // deliberately below 3:1 — allowed only because it never indicates state.
+  // Dialog. Body text and the muted description sit on --kanso-surface, already
+  // measured above; the trigger and close button borders are --kanso-line-strong
+  // on bg and on surface, also above. Two things here are deliberately *not*
+  // measured, for the same reason in both cases — they are not opaque colour
+  // pairs. The scrim is translucent (a component property, not a token), and
+  // the dialog's own 1px --kanso-line border is decorative: what tells a user a
+  // modal is open is the dimmed page and the moved focus, never that hairline.
+  ['fg', 'surface-sunk', 4.5, 'dialog trigger and close button text, hovered'],
 ];
 
 let failures = 0;

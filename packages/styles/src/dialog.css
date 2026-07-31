@@ -1,0 +1,175 @@
+/**
+ * Dialog.
+ *
+ * Scoped by [data-scope='dialog'] because part names repeat across components.
+ * Note that this component has *two* scope roots rather than one: the trigger
+ * stays in the page while the positioner is portalled to <body>, so no single
+ * element contains both. See docs/02 §2 and docs/03 §3.
+ *
+ * The stylesheet carries two accessibility requirements that no amount of
+ * JavaScript would fix, and both are commented where they appear: the content
+ * scrolls internally rather than running off the viewport (SC 2.4.11), and the
+ * positioner does not swallow pointer events meant for the page behind a
+ * non-modal dialog.
+ */
+
+/* The trigger. Deliberately plain — Phase 5's Button owns button styling, and
+ * this must not become a second, competing definition of one. */
+[data-kanso][data-scope='dialog'][data-part='trigger'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* WCAG 2.2 SC 2.5.8 wants 24x24 CSS pixels; 44px is the comfortable target. */
+  min-height: 2.75rem;
+  padding: var(--kanso-space-2) var(--kanso-space-4);
+  border: var(--kanso-border) solid var(--kanso-line-strong);
+  border-radius: var(--kanso-radius);
+  background: var(--kanso-surface);
+  color: var(--kanso-fg);
+  cursor: pointer;
+  /* The library sets no font-family; the button must not impose one either. */
+  font: inherit;
+  transition: background-color var(--kanso-duration) var(--kanso-ease);
+}
+
+[data-kanso][data-scope='dialog'][data-part='trigger']:hover {
+  background: var(--kanso-surface-sunk);
+}
+
+/*
+ * The layer.
+ *
+ * `pointer-events: none` is load-bearing rather than tidy. A non-modal dialog
+ * leaves the page usable by definition, and a full-viewport positioner that
+ * accepts pointer events would silently make the whole page unclickable while
+ * looking completely correct. The backdrop and the content take events back.
+ */
+[data-kanso][data-scope='dialog'][data-part='positioner'] {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--kanso-space-4);
+  pointer-events: none;
+}
+
+/*
+ * The scrim. A component-level custom property rather than a palette token: it
+ * is translucent, so it has no contrast requirement of its own and belongs to
+ * this component rather than to the theme. Override it here if a design wants a
+ * heavier or lighter dim.
+ */
+[data-scope='dialog'] [data-part='backdrop'] {
+  --kanso-dialog-scrim: oklch(20% 0.01 95 / 0.5);
+
+  position: fixed;
+  inset: 0;
+  background: var(--kanso-dialog-scrim);
+  pointer-events: auto;
+}
+
+[data-scope='dialog'] [data-part='content'] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--kanso-space-3);
+  box-sizing: border-box;
+  width: min(32rem, 100%);
+  /*
+   * WCAG 2.2 SC 2.4.11, "focus not obscured": a dialog taller than the viewport
+   * would push its own footer — usually the confirm and cancel buttons — under
+   * the edge of the screen, where a focused control cannot be seen. Constraining
+   * the height and scrolling internally means the browser can always bring the
+   * focused element into view. `dvh`, not `vh`, so a mobile URL bar sliding in
+   * does not reintroduce the problem.
+   */
+  max-height: calc(100dvh - 2 * var(--kanso-space-4));
+  overflow: auto;
+  padding: var(--kanso-space-6);
+  border: var(--kanso-border) solid var(--kanso-line);
+  border-radius: var(--kanso-radius);
+  background: var(--kanso-surface);
+  color: var(--kanso-fg);
+  pointer-events: auto;
+}
+
+/*
+ * The content is focusable by script — it is where focus lands when the dialog
+ * holds nothing focusable of its own — but it is not a tab stop and should not
+ * look like one when it is merely the fallback target.
+ */
+[data-scope='dialog'] [data-part='content']:focus {
+  outline: none;
+}
+
+[data-scope='dialog'] [data-part='content']:focus-visible {
+  outline: var(--kanso-focus-ring) solid var(--kanso-focus-color);
+  outline-offset: calc(-1 * var(--kanso-focus-ring));
+}
+
+[data-scope='dialog'] [data-part='title'] {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+[data-scope='dialog'] [data-part='description'] {
+  margin: 0;
+  color: var(--kanso-fg-muted);
+  line-height: 1.55;
+}
+
+[data-scope='dialog'] [data-part='close'] {
+  align-self: flex-start;
+  min-height: 2.75rem;
+  padding: var(--kanso-space-2) var(--kanso-space-4);
+  border: var(--kanso-border) solid var(--kanso-line-strong);
+  border-radius: var(--kanso-radius);
+  background: transparent;
+  color: var(--kanso-fg);
+  cursor: pointer;
+  font: inherit;
+}
+
+[data-scope='dialog'] [data-part='close']:hover {
+  background: var(--kanso-surface-sunk);
+}
+
+/* Focus is styled with :focus-visible so a pointer press does not draw a ring —
+ * the platform's own heuristic, which is better than any we would write. */
+[data-kanso][data-scope='dialog'][data-part='trigger']:focus-visible,
+[data-scope='dialog'] [data-part='close']:focus-visible {
+  outline: var(--kanso-focus-ring) solid var(--kanso-focus-color);
+  outline-offset: var(--kanso-focus-ring-offset);
+}
+
+/*
+ * Entry only. There is no exit animation because there is no exit state: the
+ * content unmounts on close, which is docs/03 §3 decision 8 — an exit
+ * transition needs an "unmounting" state in core, a transitionend listener and
+ * a timeout fallback, which is a state machine bought for an animation.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-scope='dialog'] [data-part='backdrop'][data-state='open'] {
+    animation: kanso-dialog-fade var(--kanso-duration) var(--kanso-ease);
+  }
+
+  [data-scope='dialog'] [data-part='content'][data-state='open'] {
+    animation: kanso-dialog-enter var(--kanso-duration) var(--kanso-ease);
+  }
+}
+
+@keyframes kanso-dialog-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes kanso-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}

@@ -38,6 +38,10 @@
       "types": "./dist/tabs.d.ts",
       "import": "./dist/tabs.js"
     },
+    "./dialog": {
+      "types": "./dist/dialog.d.ts",
+      "import": "./dist/dialog.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {

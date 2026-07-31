@@ -231,7 +231,7 @@ Builds `focus-trap.ts`, `scroll-lock.ts`, `dismissable.ts` — all reused by Men
 | `closeOnEscape` | `boolean` | `true` | |
 | `closeOnInteractOutside` | `boolean` | `true` | |
 | `initialFocus` | `() => HTMLElement \| null` | — | Defaults to first focusable |
-| `finalFocus` | `() => HTMLElement \| null` | — | Defaults to the trigger |
+| `finalFocus` | `() => HTMLElement \| null` | — | Defaults to whatever had focus at open |
 | `role` | `'dialog' \| 'alertdialog'` | `'dialog'` | |
 
 **Keyboard**
@@ -263,6 +263,152 @@ to avoid a layout shift on open — a small detail that reads as care.
 
 **Testing note:** jsdom's focus model is not trustworthy for verifying a trap.
 Assert trap behaviour in **Playwright**, on a real browser.
+
+### Decisions taken before implementation (Phase 3)
+
+Ten questions this spec did not answer, settled here rather than discovered in a
+test, per `docs/01` §12 step 1. Dialog is the first component whose behaviour is
+mostly *effects*, so most of these are about when an effect runs and what it
+restores.
+
+**1. Not the native `<dialog>` element. Considered, rejected.**
+
+`showModal()` is genuinely good: top layer, `::backdrop`, an implicit focus trap,
+`Escape` for free. It still loses here, for three reasons that compound.
+
+- **The utilities are required anyway.** `docs/07` builds `focus-trap.ts` and
+  `dismissable.ts` in this phase because Phase 4's Menu composes them, and a
+  menu is not a `<dialog>`. Delegating to the platform here would mean writing
+  the same utilities one phase later with no user of them in Dialog to test them.
+- **`modal={false}` gets none of the platform's help.** `show()` — the non-modal
+  form — has no trap, no backdrop, no top layer. So a native implementation
+  needs the whole manual path regardless, and then has *two* code paths where
+  one would do.
+- **It is imperative.** `showModal()` cannot be expressed as a prop; both
+  adapters would need an effect that calls it, which is exactly the effect this
+  design already has. The platform saves nothing and costs a second mental model.
+
+The platform instinct that `docs/01` §8 records for Switch — "use the native
+element and inherit its behaviour" — is satisfied one layer down instead: the
+background is made unreachable with the **`inert` attribute** rather than by
+hand-managed `aria-hidden` and `tabindex`. That is the part of `<dialog>` worth
+having, and it is available separately.
+
+**2. The dialog is portalled, and only after mount.**
+
+Content renders into `document.body` (React `createPortal`, Vue `<Teleport>`) so
+that an ancestor's `overflow: hidden`, `transform` or `z-index` cannot clip or
+mis-stack it — the single most common reason a modal looks broken in a real app.
+
+The portal is created **after mount**, never during the server render. React's
+`createPortal` is not supported by `react-dom/server` at all, and Vue's teleport
+output is collected separately from the main HTML string, so hydrating it in
+place needs machinery neither adapter should carry.
+
+The consequence, stated plainly because it is a real limitation: **a dialog with
+`defaultOpen` is absent from the server-rendered HTML and appears after
+hydration.** For a modal that is correct — a dialog that is already open on first
+paint is a dark pattern in most designs, and search engines should not index its
+contents as page text. If a consumer needs content in the initial HTML, it does
+not want a dialog.
+
+**3. `Title` and `Description` register themselves; the idrefs follow.**
+
+`aria-labelledby` and `aria-describedby` on the content must point at elements
+that exist. Both parts are optional, so emitting the idrefs unconditionally
+produces a dangling reference — the **third** occurrence of this defect class in
+this repo (`docs/01` §8 amendment 2 for Switch, decision 1 above for Tabs), which
+makes it worth naming: *an idref is a promise about the DOM, and only the thing
+that renders can keep it.*
+
+So `Dialog.Title` and `Dialog.Description` register with `Dialog.Root` on mount
+(React layout effect, Vue `onMounted`), and `connect` emits each idref only when
+its part is registered. `aria-labelledby` is additionally dropped when the
+consumer supplies their own `aria-label`, matching Switch.
+
+The registration is deliberately allowed to land one render late, because of the
+ordering it is racing against: children's mount hooks run **before** the parent's
+in both frameworks, and the parent's mount hook is what moves focus into the
+dialog. Focus arriving is what causes a screen reader to announce it, so by the
+time anyone can hear the name, the idref is there.
+
+A dialog opened with neither a `Title` nor an `aria-label` is nameless. That gets
+a `console.error` in development from the same effect that moves focus — the one
+moment where the whole subtree is known to be mounted.
+
+**4. Outside-press is `pointerdown`, and it remembers where the press started.**
+
+A `click` handler on the backdrop is the obvious implementation and closes the
+dialog when a user selects text inside it and releases the mouse over the
+backdrop — a drag, not a click, and the user loses their work.
+
+`dismissable.ts` therefore records the target of `pointerdown` and closes only if
+the press *started* outside the content. The backdrop is not special: it has no
+handler of its own and is only paint. One code path, and it also covers a click
+on the positioner's padding, which a backdrop-only handler would miss.
+
+**5. `Escape` and outside-press are stack-aware.**
+
+Both listen on `document`, so with two dialogs open both would fire. A module-level
+layer stack in `dismissable.ts` keeps the registration order, and only the topmost
+layer acts. Menu reuses this in Phase 4 — a menu inside a dialog is the case that
+proves it.
+
+**6. Scroll lock is refcounted, and restores what was there.**
+
+Locking sets `overflow: hidden` and a compensating `padding-right` on `<body>` —
+`window.innerWidth - documentElement.clientWidth` — so removing the scrollbar
+does not shift the page sideways. Two mistakes are easy here and both are
+guarded:
+
+- **Unlocking must restore the previous inline values, not clear them.** A page
+  that set its own `body { padding-right }` inline gets it back, not `""`.
+- **Nested dialogs need a refcount.** Closing the inner one must not unlock while
+  the outer is still open. The count lives in the module, the restore snapshot is
+  taken on the first lock only.
+
+The "no layout shift" Playwright assertion in `docs/07` is what keeps this honest.
+
+**7. Focus restore aims at what was focused, not at the trigger.**
+
+`finalFocus` defaults to *the element that had focus when the dialog opened*,
+which is usually the trigger but is not necessarily — a dialog can be opened by a
+keyboard shortcut, or by a controlled parent with no trigger at all. The element
+is captured at open time and refocused on close.
+
+If it is gone from the document by then — a common case, since dialogs are often
+opened from a row that the dialog itself deletes — focus falls back to `<body>`
+rather than throwing. `document.body.focus()` with no `tabindex` is a no-op, so
+the trap's cleanup gives the body `tabindex="-1"` only for the restore case
+and removes it again.
+
+**8. No exit animation in v1.**
+
+Closing unmounts the content immediately. Keeping it mounted for an exit
+transition means an "unmounting" state in core, a `transitionend` listener with
+a timeout fallback for when no transition is declared, and a decision about what
+`Escape` does to a dialog that is mid-close. That is a state machine bought for
+an animation. `data-state="open" | "closed"` is emitted so an *entry* animation
+is available for free, and an exit animation is a v2 addition that adds a state
+rather than changing one.
+
+**9. `role="alertdialog"` is a prop, not a component.**
+
+The only differences are the role and the expectation that the description is
+announced with the name. A separate `AlertDialog` component would duplicate
+every part for one attribute. The docs page carries the guidance that matters —
+`alertdialog` is for interruptions that need a response, and **never auto-focus
+the destructive action**: `initialFocus` should point at Cancel.
+
+**10. SC 2.4.11 is a stylesheet problem, and belongs to the stylesheet.**
+
+"Focus not obscured" fails when a long dialog runs off the viewport and a
+focused control sits under the edge. `dialog.css` gives the content
+`max-height: calc(100dvh - 2rem)` and its own `overflow: auto`, so the dialog
+scrolls internally and the focused element is always brought into view by the
+browser. Nothing in core is involved, which is the right place for it: a
+consumer restyling the dialog inherits the constraint from the part, not from
+JavaScript they cannot see.
 
 ---
 

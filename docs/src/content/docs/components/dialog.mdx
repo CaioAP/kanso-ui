@@ -1,0 +1,276 @@
+---
+title: Dialog
+description: A modal or non-modal dialog with a real focus trap, scroll lock and dismissal — one implementation, shared between Vue 3 and React 19.
+---
+
+import { dialogAnatomy } from '@caioalfonso/kanso-core';
+import ComponentPreview from '../../../components/ComponentPreview.astro';
+import DialogPlayground from '../../../components/dialog/DialogPlayground.vue';
+import { DialogPlaygroundReact } from '../../../components/dialog/DialogPlaygroundReact';
+import basicVue from '../../../examples/dialog/DialogBasic.vue?raw';
+import basicReact from '../../../examples/dialog/DialogBasic.tsx?raw';
+
+A window over the page that takes focus until it is dismissed. Modal by default:
+the rest of the page becomes inert, the body stops scrolling, and focus cannot
+leave.
+
+**Use something else** if the content is not an interruption. A dialog costs the
+user their place on the page; a panel, a disclosure or a new route usually says
+the same thing without taking the page away.
+
+<ComponentPreview label="Dialog" vueSource={basicVue} reactSource={basicReact}>
+  <DialogPlayground slot="vue" client:visible />
+  <DialogPlaygroundReact slot="react" client:visible />
+</ComponentPreview>
+
+The two panels above are different libraries rendering the same core. The focus
+trap, the scroll lock, the dismissal rules and every ARIA attribute come from the
+same `@caioalfonso/kanso-core` code; only the rendering differs.
+
+:::note[While a modal is open, the rest of this page is inert]
+Including the Vue/React toggle above. That is the component working correctly —
+close the dialog and the page comes back.
+:::
+
+## Installation
+
+```bash
+# React
+npm i @caioalfonso/kanso-react
+# Vue
+npm i @caioalfonso/kanso-vue
+```
+
+Import from the component's own entry point so the rest of the library is never
+bundled:
+
+```ts
+import { Dialog } from '@caioalfonso/kanso-react/dialog';
+```
+
+The stylesheet is optional. Without it you get a working, entirely unstyled
+dialog — including the trap and the scroll lock, which are behaviour rather than
+appearance:
+
+```ts
+import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/dialog';
+```
+
+## Anatomy
+
+Dialog is a compound component: seven parts you assemble yourself.
+
+<table>
+  <thead>
+    <tr>
+      <th>Part</th>
+      <th>Element</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>trigger</code></td>
+      <td><code>&lt;button&gt;</code></td>
+      <td>Stays in the page. Carries <code>aria-haspopup</code> and <code>aria-expanded</code>.</td>
+    </tr>
+    <tr>
+      <td><code>positioner</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td>Portalled to <code>&lt;body&gt;</code>. Renders only while open.</td>
+    </tr>
+    <tr>
+      <td><code>backdrop</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td>The scrim. Optional, and rendered <em>inside</em> the positioner.</td>
+    </tr>
+    <tr>
+      <td><code>content</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td><code>role="dialog"</code>. The trap, the layer and focus all key off it.</td>
+    </tr>
+    <tr>
+      <td><code>title</code></td>
+      <td><code>&lt;h2&gt;</code></td>
+      <td>Optional. Its presence is what emits <code>aria-labelledby</code>.</td>
+    </tr>
+    <tr>
+      <td><code>description</code></td>
+      <td><code>&lt;p&gt;</code></td>
+      <td>Optional. Its presence is what emits <code>aria-describedby</code>.</td>
+    </tr>
+    <tr>
+      <td><code>close</code></td>
+      <td><code>&lt;button&gt;</code></td>
+      <td>Any number of them, anywhere inside the content.</td>
+    </tr>
+  </tbody>
+</table>
+
+The list above comes from `dialogAnatomy`, which the library exports:
+`{dialogAnatomy.join(', ')}`.
+
+`Dialog.Root` renders **no element of its own** — the trigger stays where you put
+it and everything else is portalled, so there is no position in the tree a
+wrapper could occupy without being wrong for one of them. That also means Dialog
+has two marked scope roots rather than one: the trigger and the positioner both
+carry `data-kanso` and `data-scope="dialog"`.
+
+## Props
+
+All of these go on `Dialog.Root`.
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `open` | `boolean` | — | Controlled. Present ⇒ you own the state. |
+| `defaultOpen` | `boolean` | `false` | Uncontrolled initial value. |
+| `onOpenChange` | `(open: boolean) => void` | — | Fires in both modes. Vue emits `openChange`. |
+| `modal` | `boolean` | `true` | Non-modal skips the trap and the scroll lock. |
+| `role` | `'dialog' \| 'alertdialog'` | `'dialog'` | See below. |
+| `closeOnEscape` | `boolean` | `true` | |
+| `closeOnInteractOutside` | `boolean` | `true` | |
+| `initialFocus` | `() => HTMLElement \| null` | — | Defaults to the first focusable element. |
+| `finalFocus` | `() => HTMLElement \| null` | — | Defaults to whatever had focus at open. |
+| `id` | `string` | auto | Other ids derive from it. |
+
+Vue supports `v-model:open` on `Dialog.Root`, which maps onto the same core
+events.
+
+## Keyboard
+
+| Key | Action |
+|---|---|
+| `Escape` | Close, and return focus to where it came from |
+| `Tab` | Move to the next focusable element **inside** the dialog; wrap at the end |
+| `Shift+Tab` | The same, in reverse |
+
+`Enter` and `Space` need no handler: every trigger and close button is a real
+`<button>`.
+
+## Focus, which is the part usually got wrong
+
+1. **On open**, focus moves inside — `initialFocus` if given, else the first
+   focusable element, else the content itself. Something inside has to receive
+   focus or a screen reader never announces the dialog at all.
+2. **While open**, focus cannot leave. The page behind is marked `inert`, which
+   also removes it from the accessibility tree and stops find-in-page reaching
+   it; a `Tab` cycle wraps at the edges as a fallback.
+3. **On close**, focus returns to whatever had it when the dialog opened —
+   usually the trigger, but not always, since a dialog can be opened by a
+   keyboard shortcut or by a parent with no trigger at all. If that element is
+   gone by then, focus falls back to the body rather than being dropped.
+
+:::caution[Never auto-focus a destructive action]
+The default lands on the first focusable element. In a delete confirmation that
+is often the delete button, and a user pressing `Enter` out of habit has just
+lost something. Point `initialFocus` at Cancel.
+:::
+
+```tsx
+const cancelRef = useRef<HTMLButtonElement>(null);
+
+<Dialog.Root role="alertdialog" initialFocus={() => cancelRef.current}>
+```
+
+In Vue, a template ref on a *component* resolves to its instance rather than to
+its element, so reach for the element through `$el`:
+
+```ts
+const cancel = ref();
+const initialFocus = () => cancel.value?.$el ?? null;
+```
+
+## `modal` versus non-modal
+
+`modal` (the default) traps focus, locks body scrolling and inerts the page. A
+non-modal dialog does none of those: the page behind stays usable, which is the
+entire distinction. Dismissal and focus movement still apply either way.
+
+The scroll lock compensates for the scrollbar it removes, so the page does not
+shift sideways when a dialog opens, and it is refcounted — a dialog opened from
+inside a dialog does not unlock the page when the inner one closes.
+
+## `role="alertdialog"`
+
+For an interruption that needs a response: a confirmation, an error that blocks
+progress. Assistive technology announces the description along with the name,
+and the user is expected to deal with it before continuing. Everything else
+behaves identically, which is why this is a prop rather than a second component.
+
+## Accessibility
+
+Follows the [APG modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/).
+
+- `role="dialog"` with `aria-modal="true"` while modal. `aria-modal` is never
+  emitted as `"false"` — its absence says the same thing.
+- `aria-labelledby` and `aria-describedby` are emitted **only when the part they
+  point at is rendered**. An idref to an element that does not exist leaves the
+  dialog with no accessible name at all, and axe reports it as *incomplete*
+  rather than as a violation — so nothing in CI would tell you.
+- A dialog with neither a `Dialog.Title` nor an `aria-label` logs an error in
+  development. Give it one or the other; a screen reader otherwise announces
+  just "dialog".
+- The trigger carries `aria-haspopup="dialog"` and `aria-expanded`, and
+  deliberately **no `aria-controls`**: the content is unmounted while closed, so
+  that idref would dangle for most of the component's life.
+- The content is `max-height` constrained and scrolls internally, so a focused
+  control inside a long dialog is never pushed under the edge of the viewport
+  (WCAG 2.2 SC 2.4.11).
+- Triggers and close buttons are at least 44px tall (SC 2.5.8), and the focus
+  ring is `:focus-visible` only.
+
+## Examples
+
+### Controlled
+
+```tsx
+const [open, setOpen] = useState(false);
+
+<Dialog.Root open={open} onOpenChange={setOpen}>
+  {/* … */}
+</Dialog.Root>
+```
+
+Useful when something other than the trigger opens the dialog — a keyboard
+shortcut, a route, a failed request.
+
+### Dismissal you control
+
+```tsx
+<Dialog.Root
+  closeOnEscape={false}
+  closeOnInteractOutside={false}
+>
+```
+
+Both off makes a dialog that can only be closed deliberately — appropriate for
+a destructive confirmation, and hostile for anything else. `closeOnEscape:
+false` means only that `Escape` does not close *this* dialog; the press still
+reaches your own handlers.
+
+### Server rendering
+
+The dialog is portalled after mount, so it is **absent from the server-rendered
+HTML** — including one with `defaultOpen`. That is deliberate: React's
+`createPortal` is not supported by `react-dom/server`, Vue's teleport output is
+collected separately from the page HTML, and content that must appear in the
+initial response does not want to be a dialog.
+
+### Unstyled
+
+The library ships no styles unless you import them. The behaviour is unaffected:
+
+```css
+[data-scope='dialog'] [data-part='content'] {
+  /* your dialog */
+}
+[data-scope='dialog'] [data-part='backdrop'] {
+  /* your scrim */
+}
+```
+
+Two rules are worth keeping if you write your own: the positioner needs
+`pointer-events: none` with the content taking events back, or a non-modal
+dialog makes the whole page unclickable; and the content needs a `max-height`
+with `overflow: auto`, or a long dialog pushes its own buttons off-screen.
