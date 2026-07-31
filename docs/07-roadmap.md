@@ -125,17 +125,24 @@ linked from the portfolio. Every later component is now mechanical.
 
 First component with real keyboard work. Introduces roving tabindex.
 
-- [ ] `core/src/dom/roving-focus.ts` + its own unit tests
-- [ ] Core: types, anatomy, state, connect; horizontal + vertical; loop; automatic
+- [x] `core/src/dom/roving-focus.ts` + its own unit tests
+- [x] Core: types, anatomy, state, connect; horizontal + vertical; loop; automatic
       and manual activation
-- [ ] Both adapters
-- [ ] Tests: every key in the `docs/03` table, both orientations, both activation
+- [x] Both adapters
+- [x] Tests: every key in the `docs/03` table, both orientations, both activation
       modes, axe, SSR
-- [ ] Styles, docs page, `/embed/tabs`, changeset
-- [ ] Dogfood: rebuild `ComponentPreview`'s framework toggle on real Tabs
+- [x] Styles, docs page, `/embed/tabs`, changeset
+- [x] Dogfood: rebuild `ComponentPreview`'s framework toggle on the library's own
+      roving focus — from **core**, not from an adapter. See `docs/09`.
 
 **Done when:** the full keyboard table passes in both frameworks, and the docs page
 explains the `activationMode` tradeoff.
+
+**Status:** both met. The six design questions `docs/03` §2 left open were settled
+in writing before any code, per §12 step 1; the answers and their costs are
+recorded there and summarised in `docs/09`. Tabs is also the first component whose
+own docs page contains a second tablist, which is what exposed the
+`ComponentPreview` defect listed in `docs/09`.
 
 ---
 

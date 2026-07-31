@@ -168,6 +168,12 @@ const pairs = [
   // against the track it sits on (SC 1.4.11) — in both positions.
   ['fg-muted', 'surface-sunk', 3.0, 'switch thumb on an unchecked track'],
   ['line-strong', 'surface-sunk', 3.0, 'switch track border, unchecked'],
+  // Tabs adds no pair that is not already above, and that is worth stating so
+  // nobody assumes it was forgotten. Unselected trigger text is fg-muted on bg
+  // and on surface when hovered; the selected trigger is fg on the same two; the
+  // 2px rule that marks selection is accent on bg and on surface, covered by the
+  // SC 1.4.11 rows. The list hairline is --kanso-line, which is decorative and
+  // deliberately below 3:1 — allowed only because it never indicates state.
 ];
 
 let failures = 0;

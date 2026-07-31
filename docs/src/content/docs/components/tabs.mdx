@@ -1,0 +1,259 @@
+---
+title: Tabs
+description: One panel visible at a time, with roving-tabindex keyboard navigation shared between Vue 3 and React 19.
+---
+
+import { tabsAnatomy } from '@caioalfonso/kanso-core';
+import ComponentPreview from '../../../components/ComponentPreview.astro';
+import TabsPlayground from '../../../components/tabs/TabsPlayground.vue';
+import { TabsPlaygroundReact } from '../../../components/tabs/TabsPlaygroundReact';
+import basicVue from '../../../examples/tabs/TabsBasic.vue?raw';
+import basicReact from '../../../examples/tabs/TabsBasic.tsx?raw';
+
+A set of panels of which one is shown at a time, with a row of triggers to choose
+between them.
+
+**Use something else** if the panels are not alternatives. Tabs hide content, and
+content a user has to find by guessing which tab it is behind is content they
+will not read. Sequential steps want a wizard; a long document wants headings.
+
+<ComponentPreview label="Tabs" vueSource={basicVue} reactSource={basicReact}>
+  <TabsPlayground slot="vue" client:visible />
+  <TabsPlaygroundReact slot="react" client:visible />
+</ComponentPreview>
+
+The two panels above are different libraries rendering the same core. Every arrow
+key, every ARIA attribute and every state transition comes from the same
+`@caioalfonso/kanso-core` code; only the rendering differs.
+
+## Installation
+
+```bash
+# React
+npm i @caioalfonso/kanso-react
+# Vue
+npm i @caioalfonso/kanso-vue
+```
+
+Import from the component's own entry point so the rest of the library is never
+bundled:
+
+```ts
+import { Tabs } from '@caioalfonso/kanso-react/tabs';
+```
+
+The stylesheet is optional. Without it you get a fully functional, entirely
+unstyled tablist:
+
+```ts
+import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/tabs';
+```
+
+## Anatomy
+
+Tabs is a compound component: four parts you assemble yourself, so anything can
+live inside a panel.
+
+<table>
+  <thead>
+    <tr>
+      <th>Part</th>
+      <th>Element</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>root</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td>Carries <code>data-kanso</code> and <code>data-scope="tabs"</code>. The only marked element.</td>
+    </tr>
+    <tr>
+      <td><code>list</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td><code>role="tablist"</code>. Holds the triggers and nothing else.</td>
+    </tr>
+    <tr>
+      <td><code>trigger</code></td>
+      <td><code>&lt;button&gt;</code></td>
+      <td>One per tab, identified by <code>value</code>. Exactly one is in the tab order.</td>
+    </tr>
+    <tr>
+      <td><code>content</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td>One per tab, matched to a trigger by <code>value</code>. Always rendered.</td>
+    </tr>
+  </tbody>
+</table>
+
+Every part is addressable as `[data-part="…"]`, and triggers and panels also
+carry `data-state="active" | "inactive"` and `data-orientation`. That is the whole
+styling contract — there are no class names to depend on.
+
+The list above comes from `tabsAnatomy`, which the library exports:
+`{tabsAnatomy.join(', ')}`.
+
+There is deliberately **no `indicator` part**. Sliding one element under whichever
+trigger is selected means measuring elements at runtime; the selected trigger
+draws its own 2px rule in CSS instead, which needs no JavaScript and cannot fall
+out of sync.
+
+## Props
+
+All of these go on `Tabs.Root`.
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `value` | `string` | — | Controlled. Present ⇒ you own the value. |
+| `defaultValue` | `string` | — | Uncontrolled initial value. See the warning below. |
+| `onValueChange` | `(value: string) => void` | — | Fires in both modes. Vue emits `valueChange`. |
+| `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | Decides which arrow keys move between tabs. |
+| `activationMode` | `'automatic' \| 'manual'` | `'automatic'` | See below — this one is worth reading. |
+| `loop` | `boolean` | `true` | Whether the arrows wrap past the ends. |
+| `id` | `string` | auto | Lands on the root verbatim; other ids derive from it. |
+
+`Tabs.Trigger` and `Tabs.Content` each take a required `value: string`. Matching
+values pair them up.
+
+Vue additionally supports `v-model` on `Tabs.Root`, which maps onto the same core
+events.
+
+:::caution[Pass a value]
+With neither `value` nor `defaultValue`, nothing is selected — and since the tab
+stop belongs to the selected trigger, the tablist cannot be reached with `Tab` at
+all. This is deliberate: the alternative is selecting the first tab in an effect
+on mount, which writes state during mount, fights controlled mode, and differs
+between the server render and the client render.
+:::
+
+## Keyboard
+
+Horizontal orientation; vertical swaps the arrows for `ArrowUp` / `ArrowDown`.
+
+| Key | Action |
+|---|---|
+| `ArrowRight` | Focus the next tab, wrapping when `loop` |
+| `ArrowLeft` | Focus the previous tab |
+| `Home` | Focus the first tab |
+| `End` | Focus the last tab |
+| `Enter` / `Space` | Select the focused tab |
+| `Tab` | Leave the tablist and enter the active panel |
+
+The arrows for the *other* axis are left alone on purpose — in a horizontal
+tablist, `ArrowDown` must still scroll the page.
+
+`Enter` and `Space` need no handler at all: a trigger is a real `<button>`, and a
+button already turns both keys into a click.
+
+### Roving tabindex
+
+Exactly one trigger has `tabindex="0"` — the selected one. Every other trigger is
+`-1`, which is what makes `Tab` step over the whole list in one press instead of
+walking through every tab. Giving all of them `tabindex="0"` is the single most
+common way to build a tablist that is exhausting to use.
+
+The tab stop follows the *selection*, not the focus. In manual mode you can arrow
+to a tab without selecting it; `Tab` away and back and you return to the selected
+tab, not the one you had merely visited.
+
+## `activationMode`
+
+`automatic` selects a tab as soon as focus reaches it. `manual` moves focus and
+waits for `Enter` or `Space`.
+
+The difference is invisible to mouse users and significant to keyboard users.
+With `automatic`, arrowing from the first tab to the fourth fires
+`onValueChange` **three times** — once per tab passed through. That is fine when
+selecting is free, and wasteful when the handler fetches data, navigates, or
+records analytics.
+
+```tsx
+// Selecting is free: the panels are already rendered.
+<Tabs.Root activationMode="automatic">
+
+// Selecting costs something. Don't fire it for
+// tabs the user only passed over on the way.
+<Tabs.Root
+  activationMode="manual"
+  onValueChange={fetchReport}
+>
+```
+
+`automatic` is the default because it is the better experience when it is
+affordable — one keypress instead of two.
+
+## Accessibility
+
+Follows the [APG tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/).
+
+- `role="tablist"` carries `aria-orientation`; each trigger is `role="tab"` with
+  `aria-selected`; each panel is `role="tabpanel"`.
+- Trigger and panel point at each other — `aria-controls` one way,
+  `aria-labelledby` the other. Both always resolve, because **panels are never
+  unmounted**: an unselected one is `hidden`, not absent. An `aria-controls`
+  pointing at an element that does not exist is reported by axe as *incomplete*
+  rather than as a violation, so it is exactly the kind of defect that survives an
+  automated audit.
+- Panels are focusable (`tabindex="0"`), so `Tab` out of the tablist lands
+  somewhere even when a panel holds nothing focusable of its own.
+- Tab values are URL-encoded into the ids. A value containing a space would
+  otherwise produce `aria-controls="tabs-content-my tab"`, which is parsed as
+  *two* idrefs, both of them broken.
+- The selected state is shown by a 2px rule and a weight change, never by colour
+  alone. The rule is measured at ≥ 3:1 against every surface it sits on
+  (WCAG 2.2 SC 1.4.11), and triggers are at least 44px tall (SC 2.5.8).
+- The focus ring is `:focus-visible` only — never on a mouse click, always on
+  keyboard.
+
+## Examples
+
+### Deferring expensive panel content
+
+Panels stay mounted so the ARIA relationships hold. To defer the work inside one,
+put the condition **in** the panel rather than around it:
+
+```tsx
+<Tabs.Content value="reports">
+  {value === 'reports' && <ExpensiveReport />}
+</Tabs.Content>
+```
+
+Wrapping `Tabs.Content` itself in that condition removes the panel from the DOM
+and leaves its trigger pointing at nothing.
+
+### Controlled
+
+```tsx
+const [value, setValue] = useState('account');
+
+<Tabs.Root value={value} onValueChange={setValue}>
+  {/* … */}
+</Tabs.Root>
+```
+
+Useful when the selected tab lives in the URL, or when two tablists have to stay
+in step.
+
+### Vertical
+
+```tsx
+<Tabs.Root defaultValue="account" orientation="vertical">
+```
+
+Swaps the arrow keys, moves the rule to the inline edge, and lays the list out as
+a column. Nothing else changes.
+
+### Unstyled
+
+The library ships no styles unless you import them. Skip the stylesheet and
+target the data attributes yourself:
+
+```css
+[data-scope='tabs'] [data-part='trigger'] {
+  /* your trigger */
+}
+[data-scope='tabs'] [data-part='trigger'][data-state='active'] {
+  /* your selected trigger */
+}
+```

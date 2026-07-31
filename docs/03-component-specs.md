@@ -84,7 +84,7 @@ APG: https://www.w3.org/WAI/ARIA/apg/patterns/tabs/
 
 Introduces **roving tabindex** to `core/src/dom/roving-focus.ts` — reused by Menu.
 
-**Anatomy:** `root` · `list` · `trigger` · `content` · `indicator`
+**Anatomy:** `root` · `list` · `trigger` · `content`
 
 **Props**
 
@@ -97,9 +97,10 @@ Introduces **roving tabindex** to `core/src/dom/roving-focus.ts` — reused by M
 | `loop` | `boolean` | `true` | Arrow wrap-around |
 
 **`activationMode` matters for a11y.** `automatic` selects on focus — correct when
-panels are cheap. `manual` requires `Enter`/`Space` — correct when a panel is
-expensive to render, so keyboard users are not forced through every panel. Document
-the tradeoff on the docs page; this is a genuinely useful thing to teach.
+selecting is free. `manual` requires `Enter`/`Space` — correct when selecting has a
+cost, because in automatic mode arrowing from the first tab to the last fires
+`onValueChange` once per tab passed through. Document the tradeoff on the docs page;
+this is a genuinely useful thing to teach.
 
 **Keyboard** (horizontal; vertical swaps for `ArrowUp`/`ArrowDown`)
 
@@ -122,6 +123,92 @@ and `aria-controls`, `role="tabpanel"` with `aria-labelledby` and `tabindex="0"`
 
 **Non-colour cue:** the active indicator is a 2px rule under/beside the trigger,
 plus a font-weight change. Never colour alone.
+
+### Decisions taken before implementation (Phase 2)
+
+Six questions this spec did not answer. Each is settled here rather than
+discovered in a test, per `docs/01` §12 step 1.
+
+**1. Panels are always mounted; only their children may be lazy.**
+
+`aria-controls` on a trigger and `aria-labelledby` on a panel are a bidirectional
+pair of idrefs. If unselected panels are not in the DOM, every unselected trigger
+carries a dangling `aria-controls` — the same defect class as Switch's
+unconditional `aria-labelledby` (`docs/01` §8), and axe will not catch it: an
+unresolvable `aria-controls` is reported as *incomplete*, not a violation.
+
+So `Tabs.Content` always renders its element, carrying `hidden` when unselected.
+The idrefs always resolve, and panel-local DOM state (a half-filled input, a
+scroll position) survives switching away and back.
+
+Consumers who need lazy work put the condition *inside* the panel, not around it:
+
+```tsx
+<Tabs.Content value="reports">{isSelected && <ExpensiveReport />}</Tabs.Content>
+```
+
+The docs page teaches this pattern. It also means the original "expensive to
+render" justification for `manual` was wrong, and the prop table above now gives
+the real one: automatic activation fires `onValueChange` for every tab the user
+arrows past, which matters when the handler fetches, navigates, or logs.
+
+**2. No `focusedValue` in state — roving tabindex derives from `value` alone.**
+
+Exactly one trigger has `tabindex="0"`: the selected one. Arrow keys move DOM
+focus without moving the tab stop, which is what the APG reference implementation
+does. The consequence is visible in manual mode: arrow to the third tab, `Tab`
+away, `Shift+Tab` back, and focus lands on the *selected* tab, not the third. That
+is correct — the tab stop marks where the component's state is, not where the
+user's attention last happened to be.
+
+Storing a second focus pointer in core would also mean core tracking blur, which
+it has no business doing. Transient focus lives in the DOM.
+
+**3. Ids encode the tab value with `encodeURIComponent`.**
+
+Ids are `${rootId}-trigger-${encodeURIComponent(value)}` and
+`${rootId}-content-${encodeURIComponent(value)}`. A raw value containing a space
+would make `aria-controls="tabs-content-my tab"` parse as **two** idrefs, both
+broken. Encoding is injective, so two distinct values can never collide on one id
+— which naive sanitising (`replace(/\s/g, '-')`) does not guarantee. Every
+character `encodeURIComponent` leaves alone is legal in an HTML id and in an
+idref. Tested with values containing spaces, slashes and non-ASCII.
+
+**4. No per-tab `disabled` in v1.**
+
+Deliberately absent from the prop table. A disabled tab must stay focusable
+(`aria-disabled`, not the native attribute) while arrow keys skip it, which means
+roving focus over a *filtered* set. Phase 4's Menu requires exactly that for
+disabled menu items, so it gets built once, there, and Tabs can adopt it
+afterwards. Building it twice is how the roving-focus utility ends up with two
+shapes.
+
+**5. `indicator` is deferred out of the v1 anatomy.**
+
+A single indicator element cannot know where the selected trigger is without
+measuring it — element measurement plus a `ResizeObserver`, i.e. a `tabs.dom.ts`
+and an effect in each adapter. That is Phase 3-grade machinery bought for an
+animation, and Phase 2's definition of done is the keyboard table.
+
+The non-colour cue above is unaffected: the 2px rule is drawn by the selected
+trigger's own `::after` in `tabs.css`, which needs no JavaScript at all. A
+sliding indicator can be added later without a breaking change, since it adds a
+part rather than renaming one.
+
+**6. With nothing selected there is no tab stop, and that is on purpose.**
+
+The tab stop is the selected trigger. So a `Tabs` given neither `value` nor
+`defaultValue` — or a controlled one pointed at a value no trigger has — renders
+every trigger at `tabindex="-1"` and cannot be reached with `Tab` at all.
+
+The alternative is to select the first tab in an effect on mount. That is
+rejected: it is a state write during mount, so it fights controlled mode, it
+differs between the server render and the client render, and it has to be built
+in both adapters — three of this project's named traps for one convenience.
+
+Failing visibly is the better trade. A missing `defaultValue` is noticed the
+first time anyone presses `Tab`, whereas a component that quietly repairs its own
+inputs teaches the consumer nothing.
 
 ---
 

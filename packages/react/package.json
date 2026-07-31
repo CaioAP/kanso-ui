@@ -34,6 +34,10 @@
       "types": "./dist/switch.d.ts",
       "import": "./dist/switch.js"
     },
+    "./tabs": {
+      "types": "./dist/tabs.d.ts",
+      "import": "./dist/tabs.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {

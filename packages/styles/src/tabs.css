@@ -1,0 +1,131 @@
+/**
+ * Tabs.
+ *
+ * Scoped by [data-scope='tabs'] because part names repeat across components —
+ * every component has a `root`. See docs/02 §2.
+ *
+ * The state cue is a 2px rule plus a weight change, never colour alone. There is
+ * no `indicator` element: a single one cannot know where the selected trigger is
+ * without measuring it, so each trigger draws its own rule with `::after` and no
+ * JavaScript is involved. See docs/03 §2 decision 5.
+ */
+
+[data-kanso][data-scope='tabs'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kanso-space-4);
+}
+
+[data-kanso][data-scope='tabs'][data-orientation='vertical'] {
+  flex-direction: row;
+}
+
+/*
+ * The list. Its hairline is decorative — --kanso-line is deliberately below 3:1
+ * (see tokens.css) — which is allowed only because the selected state is carried
+ * by the accent rule and the weight change, not by this border.
+ */
+[data-scope='tabs'] [data-part='list'] {
+  display: flex;
+  flex: none;
+  gap: var(--kanso-space-1);
+  border-bottom: var(--kanso-border) solid var(--kanso-line);
+}
+
+[data-scope='tabs'] [data-part='list'][data-orientation='vertical'] {
+  flex-direction: column;
+  border-bottom: 0;
+  border-inline-end: var(--kanso-border) solid var(--kanso-line);
+}
+
+/*
+ * The triggers. Real <button>s, so Enter and Space arrive as clicks.
+ *
+ * min-height is 44px rather than the 24px floor of WCAG 2.2 SC 2.5.8, which is
+ * the same call the switch track makes. Overriding it below 24px reintroduces a
+ * real failure.
+ */
+[data-scope='tabs'] [data-part='trigger'] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: var(--kanso-space-2) var(--kanso-space-3);
+  border: 0;
+  border-radius: var(--kanso-radius);
+  background: transparent;
+  color: var(--kanso-fg-muted);
+  cursor: pointer;
+  /* The library sets no font-family; the button must not impose one either. */
+  font: inherit;
+  white-space: nowrap;
+  transition:
+    color var(--kanso-duration) var(--kanso-ease),
+    background-color var(--kanso-duration) var(--kanso-ease);
+}
+
+[data-scope='tabs'] [data-part='trigger']:hover {
+  color: var(--kanso-fg);
+  background: var(--kanso-surface);
+}
+
+/*
+ * Two cues, neither of them colour on its own: the weight change, and the rule
+ * below appearing where there was none. `docs/03` §2.
+ *
+ * The weight change makes the trigger slightly wider, which nudges the tabs
+ * after it. It is a few tenths of a pixel per character and the alternatives are
+ * worse — a faux-bold text-shadow, or a fixed width that truncates translated
+ * labels. Set `min-width` on the trigger if the shift bothers you.
+ */
+[data-scope='tabs'] [data-part='trigger'][data-state='active'] {
+  color: var(--kanso-fg);
+  font-weight: 600;
+}
+
+/*
+ * The rule. Sits on top of the list's hairline, hence the negative offset: the
+ * two must not stack into a 3px edge.
+ */
+[data-scope='tabs'] [data-part='trigger']::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(-1 * var(--kanso-border));
+  height: 2px;
+  background: transparent;
+  transition: background-color var(--kanso-duration) var(--kanso-ease);
+}
+
+[data-scope='tabs'] [data-part='trigger'][data-orientation='vertical']::after {
+  inset-inline: auto;
+  inset-block: 0;
+  inset-inline-end: calc(-1 * var(--kanso-border));
+  width: 2px;
+  height: auto;
+}
+
+[data-scope='tabs'] [data-part='trigger'][data-state='active']::after {
+  background: var(--kanso-accent);
+}
+
+/*
+ * The panel. Focusable — core gives it tabindex="0" so Tab out of the list lands
+ * somewhere, even when the panel holds nothing focusable of its own.
+ */
+[data-scope='tabs'] [data-part='content'] {
+  flex: 1;
+  min-width: 0;
+  color: var(--kanso-fg);
+}
+
+/*
+ * Unselected panels are hidden, not unmounted, so that aria-controls stays
+ * resolvable (docs/03 §2 decision 1). This restates the UA default because the
+ * flex rule above would otherwise beat it — `display` on the element wins over
+ * the UA stylesheet's `[hidden] { display: none }`.
+ */
+[data-scope='tabs'] [data-part='content'][hidden] {
+  display: none;
+}

@@ -30,6 +30,7 @@
     "./tokens": "./dist/tokens.css",
     "./base": "./dist/base.css",
     "./switch": "./dist/switch.css",
+    "./tabs": "./dist/tabs.css",
     "./package.json": "./package.json"
   },
   "publishConfig": {

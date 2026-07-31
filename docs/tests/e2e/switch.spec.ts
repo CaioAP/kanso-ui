@@ -14,6 +14,21 @@ import { expect, type Page, test } from '@playwright/test';
 const panel = (page: Page, framework: 'vue' | 'react') =>
   page.locator(`[data-panel="${framework}"]`);
 
+/**
+ * Wait for the island's JavaScript to arrive.
+ *
+ * The previews mount with `client:visible`, and the React one starts inside a
+ * hidden panel — so it only begins hydrating once the framework toggle reveals
+ * it. Server-rendered markup is fully present and fully inert before that, which
+ * makes every "click, then assert what changed" test a race the suite usually
+ * wins and occasionally does not.
+ *
+ * Astro drops the `ssr` attribute from <astro-island> when hydration completes,
+ * which is the only signal that distinguishes rendered from live.
+ */
+const hydrated = (page: Page, framework: 'vue' | 'react') =>
+  expect(page.locator(`[data-panel="${framework}"] astro-island[ssr]`)).toHaveCount(0);
+
 test.describe('Switch docs page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/components/switch/');
@@ -67,6 +82,7 @@ test.describe('Switch docs page', () => {
         if (framework === 'react') {
           await page.getByRole('tab', { name: 'React' }).click();
         }
+        await hydrated(page, framework);
       });
 
       test('toggles on click, Space and Enter', async ({ page }) => {

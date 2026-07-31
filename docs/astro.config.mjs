@@ -24,7 +24,11 @@ export default defineConfig({
         },
         {
           label: 'Components',
-          items: [{ label: 'Switch', slug: 'components/switch' }],
+          // Build order, not alphabetical — it is the order docs/03 teaches.
+          items: [
+            { label: 'Switch', slug: 'components/switch' },
+            { label: 'Tabs', slug: 'components/tabs' },
+          ],
         },
       ],
     }),
