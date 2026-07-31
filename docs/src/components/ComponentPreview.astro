@@ -7,9 +7,12 @@
  * it is the thesis, demonstrated. Both islands are rendered and one is hidden,
  * so switching is instant and neither has to re-mount.
  *
- * Built as a hand-rolled tablist for now. docs/06 §6 wants this to dogfood the
- * library's own Tabs once Tabs exists (Phase 2); until then the roving
- * tabindex and arrow-key handling live in the inline script below.
+ * The keyboard behaviour comes from the library, as docs/06 §6 asks — but from
+ * `@caioalfonso/kanso-core` directly rather than from the Vue or React adapter.
+ * Mounting the toggle as an island of one framework would make the choice
+ * between them lopsided, and would put a third hydration boundary above the two
+ * playground islands. Driving the core from a plain script says the stronger
+ * thing anyway: the behaviour needs no framework at all.
  *
  * No editable REPL, deliberately — see docs/06 §6.
  */
@@ -93,8 +96,18 @@ const { vueSource, reactSource, label } = Astro.props;
 </div>
 
 <script>
+  // The library's own roving-focus arithmetic. `getRovingItems` is deliberately
+  // not used with it: the toggle's tabs are not inside an element core owns an
+  // id for, and the array is right here. The reusable part is the arithmetic;
+  // the DOM read never was.
+  import { getRovingIndex, getRovingMove } from '@caioalfonso/kanso-core';
+
   for (const preview of document.querySelectorAll<HTMLElement>('[data-preview]')) {
-    const tabs = [...preview.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    // Scoped to [data-framework], not to [role="tab"]. A preview whose subject
+    // is itself a tablist contains other tabs, and querying by role swept them
+    // up: their aria-selected and tabindex were rewritten on every toggle and
+    // their arrow keys were hijacked. Nothing on the Switch page could show it.
+    const tabs = [...preview.querySelectorAll<HTMLButtonElement>('[data-framework]')];
 
     const select = (framework: string) => {
       for (const tab of tabs) {
@@ -117,10 +130,17 @@ const { vueSource, reactSource, label } = Astro.props;
       tab.addEventListener('click', () => select(tab.dataset.framework ?? 'vue'));
 
       tab.addEventListener('keydown', (event) => {
-        const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-        if (offset === 0) return;
+        // Which key means what, and where the move lands, both come from core.
+        // `undefined` means the key is not ours — and leaving it alone is the
+        // point, so ArrowDown still scrolls the page. Home and End work here now
+        // as a side effect of using the real thing.
+        const move = getRovingMove(event.key, 'horizontal');
+        if (move === undefined) return;
+
+        const next = tabs[getRovingIndex(move, { current: index, count: tabs.length })];
+        if (next === undefined) return;
+
         event.preventDefault();
-        const next = tabs[(index + offset + tabs.length) % tabs.length];
         select(next.dataset.framework ?? 'vue');
         next.focus();
       });

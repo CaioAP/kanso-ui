@@ -3,13 +3,15 @@
 Living status doc. **Update it as items land** — it is the fastest way for a new
 session to learn where things stand.
 
-**Status: Phase 1 built, not yet published.** Switch exists in core, Vue and
-React, with 141 unit tests and 21 browser tests green, a full docs page, and the
-embed route live. Everything up to the publish step is done.
+**Status: Phase 2 built. Nothing published yet.** Switch and Tabs exist in core,
+Vue and React, with 319 unit tests and 45 browser tests green, docs pages, and
+both embed routes live.
 
-**The one thing left in Phase 1 is publishing `0.0.1`,** which is a human
-decision — see "Human tasks". Nothing publishes until someone sets
-`RELEASE_ENABLED`, deliberately.
+**Publishing is still the one human decision.** `main` carries `0.0.1` in every
+`package.json` but nothing has been pushed to npm, and nothing will until someone
+sets `RELEASE_ENABLED` deliberately — see "Human tasks". The Phase 2 changeset is
+a patch, so the next release is `0.0.2`; if `0.0.1` is never published that
+number is simply skipped on the registry, which costs nothing.
 
 Phase 1 found four real defects that the layer below it could not see. They are
 recorded in detail under Phase 1 because the pattern generalises: each was
@@ -228,12 +230,73 @@ Each of these passed every test that existed when it was written.
 ---
 
 ## Phase 2 — Tabs
-- [ ] `core/src/dom/roving-focus.ts` + tests
-- [ ] Core + both adapters
-- [ ] Full keyboard table tested, both orientations, both activation modes
-- [ ] axe + SSR
-- [ ] Styles · docs page · `/embed/tabs` · changeset
-- [ ] `ComponentPreview` framework toggle rebuilt on real Tabs
+- [x] `core/src/dom/roving-focus.ts` + tests (21). Pure index arithmetic plus one
+      DOM read, and deliberately **no** tabindex bookkeeping: `connect()` already
+      emits `tabIndex` from state, so a manager that wrote the attribute too
+      would be a second source of truth for it
+- [x] Core: types, anatomy, state, connect — 59 unit tests
+- [x] Vue adapter + React adapter, compound (`Root`/`List`/`Trigger`/`Content`)
+- [x] Full keyboard table tested, both orientations, both activation modes —
+      42 tests per adapter, mirrored assertion for assertion
+- [x] axe + SSR both frameworks
+- [x] Styles · docs page · `/embed/tabs` · changeset (patch — `0.1.0` is
+      reserved for Phase 3, where three components make the number mean something)
+- [x] `ComponentPreview` framework toggle rebuilt on the library's own roving
+      focus — from `@caioalfonso/kanso-core` directly, not from an adapter.
+      Mounting the toggle as a Vue or React island would have made the choice
+      between the two lopsided and added a third hydration boundary above the two
+      playground islands; driving the core from a plain script says the stronger
+      thing anyway. The hand-rolled modulo arithmetic and key mapping are gone,
+      `Home` and `End` now work as a side effect of using the real implementation,
+      and only attribute application is left in the script
+
+### Decisions taken before writing code
+
+`docs/03` §2 now carries six, with the reasoning. The load-bearing ones:
+
+- **Panels are always mounted, `hidden` when unselected.** Unmounting them leaves
+  `aria-controls` dangling on every unselected trigger, and axe reports an
+  unresolvable `aria-controls` as *incomplete*, not as a violation — so nothing
+  in CI would have caught it. This also corrected the spec's stated rationale for
+  `activationMode: 'manual'`: it is not about expensive rendering, it is that
+  automatic activation fires `onValueChange` once per tab arrowed past.
+- **No `focusedValue` in state.** The tab stop follows the selection, matching the
+  APG reference implementation. Storing a second focus pointer would mean core
+  tracking blur, which it has no business doing.
+- **Tab values are `encodeURIComponent`-encoded into ids.** A value with a space
+  makes `aria-controls="t-content-my tab"` parse as two broken idrefs. Encoding
+  is injective, so two values can never collide on one id — which a
+  `replace(/\s/g, '-')` does not guarantee.
+- **No per-tab `disabled`, no `indicator` part in v1.** Both were scoped out
+  deliberately; `docs/03` §2 records why and what they would cost.
+
+### Defects Phase 2 found
+
+1. **`ComponentPreview`'s framework toggle was rewriting the component's own
+   tabs.** Its inline script queried `[role="tab"]` across the whole preview, so
+   on a page whose subject *is* a tablist it swept up the component's triggers:
+   their `aria-selected` and `tabindex` were overwritten on every framework
+   toggle, and their arrow keys were hijacked. Invisible for as long as no
+   component had tabs. Now scoped to `[data-framework]`.
+2. **The Playwright suite raced island hydration.** Previews mount with
+   `client:visible` and the React one starts inside a hidden panel, so it
+   hydrates only when the toggle reveals it. Server-rendered markup is fully
+   present and fully inert until then, so a keypress could land on markup with no
+   handler while the assertion waited five seconds for a change that had already
+   failed to happen. Both specs now wait for Astro to drop `ssr` from
+   `<astro-island>`. This was latent in the Switch suite too.
+3. **Long lines in a docs code block failed axe.** `scrollable-region-focusable`:
+   an Expressive Code `<pre>` that overflows horizontally is a scrollable region
+   with no keyboard access. It surfaced as a *flaky* failure, because the
+   overflow measurement depends on when the scan runs. Fixed at the source by
+   keeping example lines short, on the Switch page as well.
+
+### Measured, this phase
+- 319 unit tests across 4 Vitest projects (was 141), 45 Playwright tests (was 21)
+- The Vue provide/inject trap verified by planting the defect: providing the api
+  object instead of the `computed` fails 7 tests, including hydration
+- No new colour pair — Tabs reuses pairs already in `scripts/contrast.mjs`, and
+  the pair list now says so explicitly rather than leaving it looking forgotten
 
 ---
 
@@ -311,9 +374,10 @@ Each of these passed every test that existed when it was written.
       source.~~ It shows the real example file, read at build time with `?raw`
       so it cannot drift. Reflecting knob state would mean generating source,
       which is exactly how a "copy this" block starts lying.
-- [ ] `ComponentPreview`'s framework toggle is a hand-rolled tablist. Rebuild it
-      on the library's own Tabs in Phase 2 — dogfooding is the point, and it
-      deletes the inline roving-tabindex script.
+- [x] ~~`ComponentPreview`'s framework toggle is a hand-rolled tablist.~~ It now
+      drives `getRovingMove` / `getRovingIndex` from core. Not rebuilt on the Vue
+      or React `Tabs` deliberately — see the Phase 2 entry above. Worth revisiting
+      only if the toggle ever needs behaviour the core utilities do not cover.
 - [ ] The `/e2e/switch-form` fixture page ships publicly (noindex, unlinked). It
       exists because constraint validation needs a real form with a real
       stylesheet. Acceptable, but worth revisiting if fixtures multiply.
