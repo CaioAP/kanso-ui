@@ -216,7 +216,8 @@ inputs teaches the consumer nothing.
 
 APG: https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/
 
-Builds `focus-trap.ts`, `scroll-lock.ts`, `dismissable.ts` — all reused by Menu.
+Builds `focus-trap.ts`, `scroll-lock.ts`, `dismissable.ts`. Menu reuses
+`dismissable`; it deliberately does **not** trap focus — see §4 decision 1.
 
 **Anatomy:** `trigger` · `backdrop` · `positioner` · `content` · `title` ·
 `description` · `close`
@@ -443,7 +444,12 @@ press — freezing `Tab` inside a perfectly healthy inner dialog.
 So `focus-trap.ts` keeps its own module-level stack and acts only when topmost.
 Two stacks rather than one shared registry, because the two answer different
 questions: which layer a dismissal belongs to, and which container a `Tab` must
-stay inside. Phase 4's Menu-inside-Dialog depends on both.
+stay inside.
+
+*Corrected in Phase 4:* this originally said Menu-inside-Dialog depends on both
+stacks. It depends on the **dismissable** stack only — Menu creates no trap at
+all, because `Tab` has to close it and move on (§4 decision 1). The trap stack
+is still needed, and dialog-inside-dialog is what justifies it.
 
 ---
 
@@ -451,11 +457,17 @@ stay inside. Phase 4's Menu-inside-Dialog depends on both.
 
 APG: https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/
 
-Reuses `focus-trap`, `dismissable`, `roving-focus`; adds `typeahead.ts`.
+Reuses `dismissable` and `roving-focus`; adds `typeahead.ts`. **Not**
+`focus-trap` — decision 1 below explains why, and corrects this line's original
+claim.
 Deliberately last of the hard components — by now every utility it needs exists.
 
-**Anatomy:** `trigger` · `positioner` · `content` · `item` · `separator` ·
-`group` · `groupLabel`
+**Anatomy:** `root` · `trigger` · `positioner` · `content` · `item` ·
+`separator` · `group` · `groupLabel`
+
+`root` is added in Phase 4 and was not in the original list: the menu is not
+portalled, so something has to be the positioning anchor, and that element is
+also the one scope root the stylesheet keys off. See decision 3.
 
 **Props**
 
@@ -493,6 +505,130 @@ Content — `role="menu"`, `aria-labelledby` → trigger. Items — `role="menui
 **Positioning:** v1 uses simple CSS anchoring with a viewport-collision fallback.
 **Do not add a positioning engine dependency** (Floating UI) in v1 — it is a large
 dependency for a headless library. Revisit for v2 if collisions prove painful.
+
+### Decisions taken before implementation (Phase 4)
+
+Nine questions, settled here rather than discovered in a test, per `docs/01` §12
+step 1. Two of them contradict what this document said before Phase 4 started;
+both corrections are marked where they apply.
+
+**1. Menu does not trap focus. The spec was wrong, and the keyboard table is
+what proves it.**
+
+`docs/01` §6, `docs/07` and this section all listed `focus-trap` among Menu's
+ingredients. They cannot be right: the table above says `Tab` closes the menu
+and lets focus **move on**, and a trap exists precisely to stop `Tab` leaving.
+One of the two claims had to go, and the keyboard behaviour is the one the APG
+specifies.
+
+So Menu composes `dismissable` (Escape, outside-press, the layer stack) and
+`roving-focus` (the arrows), and adds `typeahead`. Nothing marks the page
+`inert`, nothing cycles `Tab`.
+
+The consequence for `Tab` is a small piece of ordering: the handler closes the
+menu and returns focus to the trigger **synchronously, without
+`preventDefault`**, so the browser's own default action then moves focus from
+the trigger to whatever follows it. Asserting only "the menu closed" would pass
+with focus stranded on the trigger, so the test asserts where focus landed.
+
+This also corrects §3 decision 12: Menu-inside-Dialog exercises the
+**dismissable** stack, not the trap stack.
+
+**2. Focus moves to items; there is no `aria-activedescendant`.**
+
+The APG allows either. Moving real DOM focus is chosen for the same reason Tabs
+chose it: `roving-focus` already exists, `:focus-visible` works without help,
+and the alternative needs every item to be reachable by id from the content
+element. `aria-activedescendant` is the better answer for a combobox, where
+focus must stay in the text field — that is a Phase 5+ problem, not this one.
+
+**3. The menu is not portalled in v1, and that is what makes a menu inside a
+dialog work.**
+
+Positioning is the obvious reason — an in-flow menu is positioned by CSS against
+a `position: relative` root and needs no measurement — but it is not the
+important one.
+
+A portalled menu is appended to `<body>`, which makes it a **sibling** of an
+open dialog's content rather than a descendant. The dialog's trap asks
+`container.contains(document.activeElement)`; with focus on a menu item that is
+false, so the trap takes its "pull focus back in" branch and yanks focus out of
+the menu the user is using. Menu creates no trap of its own, so the dialog's is
+topmost and does act. Rendering in-flow keeps focus genuinely inside the dialog
+and the trap leaves it alone.
+
+The cost is the honest one: an ancestor with `overflow: hidden` clips the menu.
+Portalling is a v2 change, and it requires the focus trap to reason about
+*layers* rather than about containment — which is a real change to
+`focus-trap.ts`, not a flag on Menu.
+
+**4. `root` joins the anatomy; the trigger carries no `aria-controls`.**
+
+Not portalled means something must be the positioning anchor, and Menu gets what
+Dialog could not have: a single scope root carrying `data-kanso` and
+`data-scope="menu"`, exactly like Tabs.
+
+The trigger keeps `aria-haspopup="menu"` and `aria-expanded` and **drops
+`aria-controls`**, correcting the ARIA line above. The content is unmounted
+while closed, so that idref would point at nothing for most of the component's
+life — the same reasoning as §3, and the fourth occurrence of that defect class
+in this repo.
+
+**5. Typeahead is per-instance, and split into a pure half and a stateful half.**
+
+`typeahead.ts` exports a pure matcher — query, labels, current index, in; an
+index or `undefined`, out — and `createTypeahead()`, which owns the buffer and
+its ~500 ms timer and returns a teardown, as every module in `core/src/dom`
+does. A module-level buffer would be shared by every menu on the page, and the
+timer would outlive the component that started it.
+
+Two distinct behaviours, and the order between them matters:
+
+- **A prefix match against the whole buffer is tried first**, so "se" goes to
+  "Settings" rather than to the next item beginning with "e".
+- **Repeated presses of one character cycle** the items starting with it — as
+  the *fallback*, when the buffer matches no prefix. Collapsing `"ss"` to `"s"`
+  unconditionally would make an item genuinely called "SSH keys" unreachable by
+  typing its name, which is a strange thing for type-to-select to do.
+
+Matching is case-insensitive against each item's text content, read from the DOM
+at keypress time for the same reason `roving-focus` reads the collection there:
+document order is the order the user perceives, and no registry can drift from
+it.
+
+**6. Typeahead lands on disabled items, exactly as the arrows do.**
+
+A disabled item is `aria-disabled`, stays in the ring and stays focusable, so a
+keyboard user can discover that it exists and is unavailable. Skipping it for
+typeahead while keeping it for the arrows would be two navigation models in one
+component. Activating it does nothing.
+
+**7. Opening always moves focus into the menu.**
+
+`ArrowUp` on the trigger opens at the last item; everything else — `Enter`,
+`Space`, `ArrowDown`, a pointer press — opens at the first. Some libraries leave
+focus on the trigger for pointer opens; that is a real difference in feel and it
+buys a second state to reason about. `:focus-visible` already means a mouse user
+sees no focus ring, which is the problem that alternative solves.
+
+**8. Menu does not lock scrolling, and the omission is deliberate.**
+
+A menu is not modal. The page behind it stays scrollable and usable, and a
+scroll dismisses nothing — the menu simply moves with the page, because it is
+positioned in flow. Locking here would be borrowing modality the component does
+not have.
+
+**9. Collision handling is measured once, at open, and nothing listens.**
+
+`menu.dom.ts` reads the content's rect after it mounts and flips placement to
+above the trigger when it would overflow the bottom of the viewport, and its
+alignment when it would overflow the inline end. The result is a
+`data-placement` attribute the stylesheet reads; no inline styles, and no
+`resize` or `scroll` listeners to leak.
+
+A menu that is open while the viewport changes is rare enough that a stale
+placement is a better trade than two live listeners per menu. Floating UI would
+handle it and remains rejected for v1 — see the note above.
 
 ---
 

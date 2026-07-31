@@ -3,15 +3,22 @@
 Living status doc. **Update it as items land** — it is the fastest way for a new
 session to learn where things stand.
 
-**Status: Phase 3 built. Nothing published yet.** Switch, Tabs and Dialog exist
-in core, Vue and React, with 508 unit tests and 79 browser tests green, docs
-pages, and all three embed routes live.
+**Status: Phase 4 built. Nothing published yet.** Switch, Tabs, Dialog and Menu
+exist in core, Vue and React, with 682 unit tests and 114 browser tests green,
+docs pages, and all four embed routes live. Every DOM utility the v1 component
+list needs is now written — Phase 5 adds no new one.
 
 **Publishing is still the one human decision.** `main` carries `0.0.1` in every
 `package.json` but nothing has been pushed to npm, and nothing will until someone
-sets `RELEASE_ENABLED` deliberately — see "Human tasks". The Phase 3 changeset is
-a **minor**, which `docs/07` reserves for the point where three components make
-the number mean something, so the next release is `0.1.0`.
+sets `RELEASE_ENABLED` deliberately — see "Human tasks".
+
+**Every pending changeset is a `patch`, deliberately.** `docs/07` originally
+reserved `0.1.0` for the end of Phase 3; the maintainer has since said `0.1.0`
+is theirs to call, so the `0.0.x` line continues and the Phase 3 changeset was
+changed from `minor` to `patch` to match. Worth knowing about changesets while
+this holds: unreleased changesets **collapse into one bump**, so however many
+patches accumulate, the next release is `0.0.2` and the one after it `0.0.3`.
+The version only moves when a release actually runs.
 
 Phase 1 found four real defects that the layer below it could not see. They are
 recorded in detail under Phase 1 because the pattern generalises: each was
@@ -393,12 +400,68 @@ its teardown.
 ---
 
 ## Phase 4 — Menu
-- [ ] `typeahead.ts` + tests
-- [ ] Core + both adapters
-- [ ] Full APG key map tested, incl. typeahead cycling and Tab-closes-and-moves-on
-- [ ] Disabled items remain focusable
-- [ ] CSS anchoring + collision fallback (no Floating UI)
-- [ ] Styles · docs page · `/embed/menu` · changeset
+- [x] `typeahead.ts` + tests (20). Split like `roving-focus.ts`: a pure matcher,
+      plus a per-instance buffer with its own teardown. A module-level buffer
+      would be shared by every menu on the page and its timer would outlive the
+      component that started it
+- [x] Core: types, anatomy, state, connect, `menu.dom.ts` — 71 unit tests. More
+      behaviour sits in `menu.dom.ts` than in `connect` for this component, and
+      deliberately: the arrows, typeahead and `Tab` all need either the live
+      item collection or a buffer that survives between keystrokes
+- [x] Vue + React adapters, compound, **not portalled**
+- [x] Full APG key map tested in both, incl. typeahead cycling and
+      Tab-closes-and-moves-on — 33 tests per adapter, mirrored, plus 7 SSR each
+- [x] Disabled items remain focusable, and typeahead lands on them like the
+      arrows do
+- [x] CSS anchoring + collision fallback (no Floating UI). Measured once at
+      open; `data-placement` is read by the stylesheet, and nothing listens for
+      `resize` or `scroll`
+- [x] Styles · docs page · `/embed/menu` · changeset (patch)
+
+### Two spec corrections, made before any code
+
+- **Menu does not use `focus-trap`.** `docs/01` §6, `docs/03` §4 and `docs/07`
+  all said it did. They cannot be right: the keyboard table says `Tab` closes
+  the menu and lets focus move on, which is the opposite of a trap. `docs/03` §4
+  decision 1 records it; §3 decision 12 was corrected too, since it claimed
+  Menu-inside-Dialog needed the trap stack when it needs the dismissable one.
+- **The trigger carries no `aria-controls`.** The content is unmounted while
+  closed, so the idref would dangle — the fourth time this repo has made that
+  call, after Switch, Tabs and Dialog.
+
+Seven more decisions are in `docs/03` §4. The one with the widest consequences
+is **not portalling**: a portalled menu is a *sibling* of an open dialog's
+content, so the dialog's trap sees focus as "outside" and pulls it out of the
+menu. Rendering in flow keeps focus genuinely inside the dialog, and both
+adapter suites now test a menu inside a dialog — the case `docs/03` §3
+decision 5 claimed as proof of the layer stack and nothing had exercised.
+
+### Defects Phase 4 found
+
+1. **A scrollable menu failed axe.** `scrollable-region-focusable`, serious: the
+   content has `max-height` and `overflow: auto`, and its items are all
+   `tabindex="-1"`, so axe — and Safari — see a scroll region with no keyboard
+   access. The content is now `tabindex="0"`. It costs nothing, because every
+   `Tab` inside the menu closes it, so that stop is never stepped onto.
+2. **An axe scan raced the entry animation.** `color-contrast`, serious, on the
+   embed route — and only in the *serial* run. axe computes contrast from
+   composited colours, so a scan landing mid-fade measured a half-transparent
+   group label against the page. Both the Menu and Dialog suites now await
+   `getAnimations()` before scanning. Third time a docs-site defect has
+   presented as flakiness rather than as a failure.
+3. **The first typeahead e2e test was wrong about its own feature.** It pressed
+   "r" then "d" and expected two separate jumps; consecutive keys are *one
+   query*, so it searched for "rd" and matched nothing. The test now waits past
+   the reset window between distinct queries, which is what a user does.
+
+### Measured, this phase
+- 682 unit tests across 4 Vitest projects (was 511), 114 Playwright tests (was 79)
+- Verified by planting the defect: adding `preventDefault()` to the `Tab` branch
+  — the one-line change that turns this into a trap — fails both adapter suites
+  and the browser suite in both frameworks
+- One new colour pair (`fg-faint` on `surface`, the disabled item). WCAG exempts
+  inactive controls from the contrast minimum; holding them to 3:1 anyway is the
+  difference between "unavailable" and "unreadable"
 
 ---
 

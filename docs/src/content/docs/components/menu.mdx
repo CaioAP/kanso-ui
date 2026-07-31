@@ -1,0 +1,242 @@
+---
+title: Menu
+description: A menu button with the full APG keyboard map — arrows, Home/End, typeahead and Tab-closes — shared between Vue 3 and React 19.
+---
+
+import { menuAnatomy } from '@caioalfonso/kanso-core';
+import ComponentPreview from '../../../components/ComponentPreview.astro';
+import MenuPlayground from '../../../components/menu/MenuPlayground.vue';
+import { MenuPlaygroundReact } from '../../../components/menu/MenuPlaygroundReact';
+import basicVue from '../../../examples/menu/MenuBasic.vue?raw';
+import basicReact from '../../../examples/menu/MenuBasic.tsx?raw';
+
+A button that opens a list of actions. The widest keyboard surface in the
+library: arrows, `Home`, `End`, type-to-select, and a `Tab` that closes the menu
+and carries on out of it.
+
+**Use something else** if the options are values rather than actions. A menu
+performs things; a select chooses one. Screen reader users are told
+"menu"/"menu item", and being told that about a form field is a small lie that
+costs them time.
+
+<ComponentPreview label="Menu" vueSource={basicVue} reactSource={basicReact}>
+  <MenuPlayground slot="vue" client:visible />
+  <MenuPlaygroundReact slot="react" client:visible />
+</ComponentPreview>
+
+The two panels above are different libraries rendering the same core. Every
+arrow key, the typeahead buffer, the dismissal rules and every ARIA attribute
+come from the same `@caioalfonso/kanso-core` code; only the rendering differs.
+
+## Installation
+
+```bash
+# React
+npm i @caioalfonso/kanso-react
+# Vue
+npm i @caioalfonso/kanso-vue
+```
+
+Import from the component's own entry point so the rest of the library is never
+bundled:
+
+```ts
+import { Menu } from '@caioalfonso/kanso-react/menu';
+```
+
+The stylesheet is optional — and for this component it also carries the
+positioning, so an unstyled menu appears in the document flow rather than over
+the page:
+
+```ts
+import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/menu';
+```
+
+## Anatomy
+
+<table>
+  <thead>
+    <tr>
+      <th>Part</th>
+      <th>Element</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>root</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td>Carries <code>data-kanso</code> and <code>data-scope="menu"</code>. Also the positioning anchor.</td>
+    </tr>
+    <tr>
+      <td><code>trigger</code></td>
+      <td><code>&lt;button&gt;</code></td>
+      <td><code>aria-haspopup="menu"</code> and <code>aria-expanded</code>.</td>
+    </tr>
+    <tr>
+      <td><code>positioner</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td>Renders only while open. Carries <code>data-placement</code>.</td>
+    </tr>
+    <tr>
+      <td><code>content</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td><code>role="menu"</code>, labelled by the trigger.</td>
+    </tr>
+    <tr>
+      <td><code>item</code></td>
+      <td><code>&lt;button&gt;</code></td>
+      <td><code>role="menuitem"</code>. Takes <code>value</code> and optional <code>disabled</code>.</td>
+    </tr>
+    <tr>
+      <td><code>separator</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td><code>role="separator"</code>. Decoration with a name.</td>
+    </tr>
+    <tr>
+      <td><code>group</code> / <code>group-label</code></td>
+      <td><code>&lt;div&gt;</code></td>
+      <td>The group points at its label; the id is generated for you.</td>
+    </tr>
+  </tbody>
+</table>
+
+The list above comes from `menuAnatomy`, which the library exports:
+`{menuAnatomy.join(', ')}`.
+
+## Props
+
+All of these go on `Menu.Root`.
+
+| Prop | Type | Default | Notes |
+|---|---|---|---|
+| `open` | `boolean` | — | Controlled. Present ⇒ you own the state. |
+| `defaultOpen` | `boolean` | `false` | Uncontrolled initial value. |
+| `onOpenChange` | `(open: boolean) => void` | — | Fires in both modes. Vue emits `openChange`. |
+| `onSelect` | `(value: string) => void` | — | The chosen item's `value`. Vue emits `select`. |
+| `loop` | `boolean` | `true` | Whether the arrows wrap past the ends. |
+| `typeahead` | `boolean` | `true` | Whether typing letters moves focus. |
+| `id` | `string` | auto | Lands on the root verbatim; other ids derive from it. |
+
+`Menu.Item` takes a required `value: string` and an optional `disabled`.
+
+Vue supports `v-model:open` on `Menu.Root`.
+
+## Keyboard
+
+| Key | Context | Action |
+|---|---|---|
+| `Enter` / `Space` / `ArrowDown` | Trigger | Open, focus the first item |
+| `ArrowUp` | Trigger | Open, focus the last item |
+| `ArrowDown` / `ArrowUp` | Open | Move focus, wrapping when `loop` |
+| `Home` / `End` | Open | First / last item |
+| `Enter` / `Space` | Open | Activate the item, close, focus the trigger |
+| `Escape` | Open | Close, focus the trigger |
+| `Tab` | Open | Close **and let focus move on** |
+| a–z, 0–9 | Open | Typeahead |
+
+Two of those need no handler at all: the trigger and every item are real
+`<button>` elements, so `Enter` and `Space` already produce a click.
+
+### `Tab` is why there is no focus trap
+
+A dialog traps focus; a menu must not. `Tab` closes the menu, puts focus back on
+the trigger, and then lets the browser's own handling carry on to whatever
+follows it — so the user ends up past the menu button, exactly where `Tab` from
+an ordinary button would have taken them.
+
+That single line of the APG is what settles the whole design: the menu composes
+dismissal and roving focus, and nothing marks the page `inert`.
+
+### Typeahead
+
+Type "se" to jump to "Settings". The buffer resets about half a second after the
+last keystroke, matching is case-insensitive, and the search wraps.
+
+Pressing the *same* letter repeatedly cycles through the items starting with it
+— but only when the buffer matches no prefix, so an item genuinely called "SSH
+keys" is still reachable by typing its name.
+
+Typeahead lands on disabled items, exactly as the arrows do.
+
+## Disabled items
+
+`disabled` on `Menu.Item` sets `aria-disabled`, not the `disabled` attribute.
+The item stays focusable and stays in the ring, so a keyboard user can discover
+that it exists and is unavailable rather than finding a gap. Activating it does
+nothing.
+
+```tsx
+<Menu.Item value="share" disabled>
+  Share (unavailable)
+</Menu.Item>
+```
+
+## Positioning
+
+The menu renders **in the document flow**, positioned by CSS against
+`Menu.Root`. There is no portal and no positioning engine — `docs/03` §4 records
+why, and the short version is that a portalled menu inside a dialog is a
+*sibling* of the dialog's content, which is enough for the dialog's focus trap
+to pull focus out of the menu you are using.
+
+Placement is measured once when the menu opens and published as
+`data-placement` on the positioner: it flips above the trigger when it would
+overflow the bottom of the viewport, and flips its alignment when it would
+overflow the inline end. Nothing listens for `resize` or `scroll` afterwards.
+
+The trade-off is the honest one: an ancestor with `overflow: hidden` clips the
+menu. If that is your layout, keep the menu out of the clipped container for
+now.
+
+## Accessibility
+
+Follows the [APG menu button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/).
+
+- Trigger: `aria-haspopup="menu"` and `aria-expanded`, and deliberately **no
+  `aria-controls`** — the content is unmounted while closed, so that idref would
+  point at nothing for most of the component's life.
+- Content: `role="menu"` labelled by the trigger. Items are `role="menuitem"`;
+  groups are `role="group"` pointing at a generated label id.
+- Focus moves to real elements rather than through `aria-activedescendant`, so
+  the focus ring is the browser's own.
+- Items are at least 44px tall (WCAG 2.2 SC 2.5.8), and a long menu scrolls
+  internally so a focused item is never pushed off-screen (SC 2.4.11).
+- The focused item is styled from `:focus`, not `:focus-visible` — unusually for
+  this library, and deliberately. Focus here is moved by script, and the
+  browser's heuristic would hide the ring exactly when a keyboard user is
+  navigating a menu they opened with the mouse.
+
+## Examples
+
+### Reacting to a choice
+
+```tsx
+<Menu.Root onSelect={(value) => run(value)}>
+```
+
+`onSelect` fires with the item's `value`, and the menu closes itself. There is
+no need to also handle `onOpenChange` for that case.
+
+### Inside a dialog
+
+Supported, and tested in both frameworks: `Escape` closes the menu first and
+leaves the dialog open, because dismissable layers are stacked. A second
+`Escape` closes the dialog.
+
+### Unstyled
+
+```css
+[data-scope='menu'] [data-part='content'] {
+  /* your menu */
+}
+[data-scope='menu'] [data-part='item'][data-disabled] {
+  /* your unavailable item */
+}
+```
+
+If you write your own, keep two things from the shipped stylesheet: the root
+needs `position: relative` (it is the anchor), and the positioner's
+`data-placement` is what the collision handling produces — reading it is the
+only way that measurement reaches the screen.

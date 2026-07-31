@@ -1,15 +1,16 @@
 ---
-'@caioalfonso/kanso-core': minor
-'@caioalfonso/kanso-react': minor
-'@caioalfonso/kanso-vue': minor
-'@caioalfonso/kanso-styles': minor
+'@caioalfonso/kanso-core': patch
+'@caioalfonso/kanso-react': patch
+'@caioalfonso/kanso-vue': patch
+'@caioalfonso/kanso-styles': patch
 ---
 
 Add Dialog: a modal or non-modal dialog with a real focus trap, a refcounted
 scroll lock and stack-aware dismissal, in Vue 3 and React 19 from one core.
 
-`minor` rather than `patch`, unlike Phase 2: `docs/07` reserves `0.1.0` for the
-point at which three components make the number mean something, and this is it.
+`patch`, not the `minor` `docs/07` originally planned. `0.1.0` is now an
+explicit decision the maintainer makes rather than one a phase boundary makes
+for them, so the `0.0.x` line continues until then.
 
 Also new in core, and reused by Phase 4's Menu:
 

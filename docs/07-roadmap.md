@@ -159,8 +159,11 @@ First hard one. Most of the work is DOM utilities that Menu will reuse.
 - [x] **Playwright**: trap holds under repeated `Tab`, focus restores on close,
       body does not scroll, no layout shift, `inert` works
 - [x] Styles, docs page, `/embed/dialog`, changeset
-- [x] Bump to `0.1.0` — three components, API taking shape (the changeset is
-      `minor`; the version lands when a release is actually run)
+- [x] ~~Bump to `0.1.0` — three components, API taking shape.~~ **Superseded.**
+      The changeset was written as a `minor` and then changed to a `patch`:
+      `0.1.0` is now a decision the maintainer makes deliberately, not one a
+      phase boundary makes for them. The `0.0.x` line continues until they say
+      otherwise. Nothing else about this phase changes.
 
 **Done when:** focus behaviour is verified in a real browser, not just jsdom.
 
@@ -183,19 +186,34 @@ worked by keyboard and silently failed by mouse.
 
 ---
 
-## Phase 4 — Menu
+## Phase 4 — Menu ✅
 
 Hardest, and cheapest now: every utility it needs exists.
 
-- [ ] `core/src/dom/typeahead.ts` + tests
-- [ ] Core: composes focus-trap, dismissable, roving-focus, typeahead
-- [ ] Both adapters
-- [ ] Tests: the entire key table including typeahead cycling and `Tab`-closes-and-
+- [x] `core/src/dom/typeahead.ts` + tests
+- [x] Core: composes dismissable, roving-focus, typeahead — **not** focus-trap,
+      which would swallow the `Tab` that is meant to close the menu
+- [x] Both adapters
+- [x] Tests: the entire key table including typeahead cycling and `Tab`-closes-and-
       moves-on; disabled items stay focusable; axe; SSR
-- [ ] Simple CSS anchoring with a viewport-collision fallback — **no Floating UI**
-- [ ] Styles, docs page, `/embed/menu`, changeset
+- [x] Simple CSS anchoring with a viewport-collision fallback — **no Floating UI**
+- [x] Styles, docs page, `/embed/menu`, changeset
 
 **Done when:** the full APG menu-button key map passes in both frameworks.
+
+**Status:** met. 682 unit tests and 114 browser tests are green.
+
+This phase spent its first hour correcting the specs rather than writing code.
+Three documents — `docs/01` §6, `docs/03` §4 and this one — listed `focus-trap`
+among Menu's ingredients, which cannot be true: the same table says `Tab` closes
+the menu and lets focus **move on**, and a trap exists to stop exactly that. The
+keyboard behaviour won. `docs/03` §4 decision 1 records it, and §3 decision 12
+was corrected too, since it claimed Menu-inside-Dialog depended on the trap
+stack when it depends on the dismissable one.
+
+Verified by planting the defect: adding `preventDefault()` to the `Tab` branch —
+the one-line change that turns this into a trap — fails both the adapter suites
+and the browser suite in both frameworks.
 
 ---
 

@@ -32,6 +32,7 @@
     "./switch": "./dist/switch.css",
     "./tabs": "./dist/tabs.css",
     "./dialog": "./dist/dialog.css",
+    "./menu": "./dist/menu.css",
     "./package.json": "./package.json"
   },
   "publishConfig": {
