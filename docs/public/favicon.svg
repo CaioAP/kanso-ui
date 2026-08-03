@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="kanso-ui">
+  <style>
+    .ink { fill: none; stroke: #38383a; stroke-width: 2; }
+    .accent { fill: #3f5bd4; }
+    @media (prefers-color-scheme: dark) {
+      .ink { stroke: #e6e5e2; }
+      .accent { fill: #8fa4f4; }
+    }
+  </style>
+  <!--
+    Square, hairline, one accent mark. No Japanese characters: the name carries
+    the idea and the design expresses it — docs/02 §1. Squared corners because
+    --kanso-radius is 0.
+  -->
+  <rect class="ink" x="4" y="4" width="24" height="24" />
+  <rect class="accent" x="10" y="10" width="12" height="4" />
+</svg>
