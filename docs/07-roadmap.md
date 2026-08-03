@@ -274,7 +274,7 @@ Runs alongside Phase 5.
 **Done when:** the site teaches without the reader opening the source, and holds
 the same a11y and performance bar as the library.
 
-**Status:** met. 192 browser tests are green (was 171) and every gate passes.
+**Status:** met. 200 browser tests are green (was 171) and every gate passes.
 
 Two things this phase found are worth carrying forward, because neither was on
 the checklist and both were live on the deployed site:

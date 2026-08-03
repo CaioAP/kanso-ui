@@ -6,7 +6,7 @@ session to learn where things stand.
 **Status: Phases 5 and 5.1 done — all seven v1 components exist and the site is
 themed and documented. Nothing published yet.** Switch, Tabs, Dialog, Menu,
 Field (with Input and Textarea), Button and Card are in core, Vue and React,
-with 886 unit tests and 192 browser tests green, docs pages, four guides, and
+with 886 unit tests and 200 browser tests green, docs pages, four guides, and
 seven embed routes live. Lighthouse is 100 across all four categories.
 
 The component list from `docs/00` is complete. What remains before `1.0.0` is
@@ -655,7 +655,7 @@ looking at the console reports — which is the argument for measuring rather th
 assuming. `docs/public/favicon.svg` now exists.
 
 **Lighthouse's accessibility score is not axe**, and a 100 there is worth less
-than the 192 browser assertions. It scans a subset of rules on the initial
+than the 200 browser assertions. It scans a subset of rules on the initial
 render; it cannot open a dialog, press an arrow key or tab through a trap.
 Recorded as a floor, read as a floor.
 

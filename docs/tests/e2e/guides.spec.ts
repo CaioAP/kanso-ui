@@ -26,6 +26,22 @@ const pages = [
   '/guides/ssr/',
 ] as const;
 
+/**
+ * Pages whose code blocks are measured at 360px.
+ *
+ * The guides are the obvious ones, but the component pages carry more code than
+ * any guide and — crucially — they are served by the *other* half of the fix.
+ * Markdown fences go through the rehype plugin; the `<Code>` blocks
+ * ComponentPreview renders go through the Expressive Code plugin, configured in
+ * a different file for a different reason. Leaving those out would verify one
+ * half of a two-part fix and call it done, which is how this defect came back
+ * three times.
+ *
+ * Only two component pages, not all seven: they are built from one shared
+ * preview component, so the third would test the same code path again.
+ */
+const codePages = [...pages, '/components/switch/', '/components/menu/'] as const;
+
 const setTheme = (page: Page, theme: 'light' | 'dark') =>
   page.evaluate((value) => {
     document.documentElement.dataset.theme = value;
@@ -48,22 +64,11 @@ for (const path of pages) {
       }
     });
 
-    test('every scrollable code block is reachable by keyboard', async ({ page }) => {
-      // Narrow enough to be a real phone, and narrow enough that essentially
-      // every code sample overflows — which is the point. At 1280px most
-      // blocks fit, the region is not scrollable, and the rule has nothing to
-      // report. That is exactly how this defect stayed hidden three times.
+    test('has no axe violations at 360px either', async ({ page }) => {
+      // Narrow is its own state: it is where a code block starts overflowing,
+      // and where the rule below has anything to report at all.
       await page.setViewportSize({ width: 360, height: 800 });
       await page.goto(path);
-
-      const unreachable = await page.evaluate(() =>
-        [...document.querySelectorAll('.sl-markdown-content pre')]
-          .filter((pre) => pre.scrollWidth > pre.clientWidth)
-          .filter((pre) => pre.getAttribute('tabindex') === null)
-          .map((pre) => (pre.textContent ?? '').slice(0, 60)),
-      );
-
-      expect(unreachable, `scrollable but unfocusable blocks on ${path}`).toEqual([]);
 
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
@@ -71,6 +76,29 @@ for (const path of pages) {
 
       expect(results.violations, `axe on ${path} at 360px`).toEqual([]);
     });
+  });
+}
+
+for (const path of codePages) {
+  test(`every scrollable code block on ${path} is reachable by keyboard`, async ({ page }) => {
+    // Narrow enough to be a real phone, and narrow enough that essentially
+    // every code sample overflows — which is the point. At 1280px most blocks
+    // fit, the region is not scrollable, and axe has nothing to report. That
+    // is exactly how this defect stayed hidden three times.
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto(path);
+
+    // Every `pre` on the page, not only the ones inside prose: on a component
+    // page the interesting blocks are the ones ComponentPreview renders, and
+    // they are the half of the fix the rehype plugin does not reach.
+    const unreachable = await page.evaluate(() =>
+      [...document.querySelectorAll('pre')]
+        .filter((pre) => pre.scrollWidth > pre.clientWidth)
+        .filter((pre) => pre.getAttribute('tabindex') === null)
+        .map((pre) => (pre.textContent ?? '').slice(0, 60)),
+    );
+
+    expect(unreachable, `scrollable but unfocusable blocks on ${path}`).toEqual([]);
   });
 }
 
