@@ -53,12 +53,18 @@ passing vacuously that way.
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm core-purity    # no framework import in packages/core
+pnpm contrast       # every token pair against its WCAG requirement
 pnpm test
 pnpm build
+pnpm core-purity    # again, against dist — the source check cannot see inlining
+pnpm package-lint   # publint + arethetypeswrong; catches a broken exports map
 pnpm bundle-size    # needs the build; asserts no entry pulls in another
-pnpm core-purity
-pnpm contrast       # only if you touched a colour token
 ```
+
+That is what CI runs, in that order, and it is why `core-purity` appears twice.
+If you touched the docs site, add `pnpm --filter docs build` and
+`pnpm --filter docs test:e2e`, which CI runs after these.
 
 Do not check whether a gate passed by truncating its output — `pnpm lint | tail -2`
 will happily hide the error. Read enough to see a verdict, or key off the exit

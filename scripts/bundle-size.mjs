@@ -59,6 +59,12 @@ const marker = (entry) => `"data-scope":"${entry}"`;
  * Gzipped byte budgets per entry. Deliberately tight: a budget with slack in it
  * cannot fail, and a check that cannot fail is decoration. Raise one only with
  * a reason in the commit message.
+ *
+ * Calibrated against a pinned esbuild — the version in the root package.json is
+ * exact, not a caret range, for this reason. Minifier output moves between
+ * releases, and at ~12% headroom a bump could push every entry over at once.
+ * If a run fails on size across the board rather than on one entry, suspect the
+ * bundler moved, not the library.
  */
 const BUDGETS = {
   '@caioalfonso/kanso-core': {

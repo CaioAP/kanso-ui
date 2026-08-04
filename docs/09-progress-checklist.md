@@ -821,12 +821,18 @@ and exit 1; reverting restored it to clean.
       drives `getRovingMove` / `getRovingIndex` from core. Not rebuilt on the Vue
       or React `Tabs` deliberately — see the Phase 2 entry above. Worth revisiting
       only if the toggle ever needs behaviour the core utilities do not cover.
-- [ ] `docs/06` §4's information architecture names seven pages that do not
-      exist and that Phase 5.1's checklist never asked for: Installation, Quick
-      start, Styling, and the three Reference pages (Design tokens, Data
-      attributes, Changelog). Two documents disagreeing rather than an
-      unfinished task. Decide in Phase 6 whether they belong in `1.0.0`; the
-      component pages already carry per-component installation.
+- [x] ~~`docs/06` §4's information architecture names seven pages that do not
+      exist: Installation, Quick start, Styling, and the three Reference pages
+      (Design tokens, Data attributes, Changelog). Decide in Phase 6 whether
+      they belong in `1.0.0`.~~ **Decided in Phase 6: not blocking `1.0.0`.**
+      Five of the seven are already covered by pages that exist — installation
+      is on each component page, styling and design tokens are the Theming
+      guide, data attributes are each component's anatomy table. Quick start
+      and Changelog are the two genuine gaps, and both are better written
+      *after* a publish: a quick start that cannot be copy-pasted because the
+      package is not on npm teaches nothing, and a changelog before the first
+      release has no entries. `docs/06` §4 is the document that is out of date,
+      not the site. Revisit once `0.0.1` is out.
 - [ ] `astro.config.mjs` uses Astro 7's deprecated `markdown.rehypePlugins`,
       deliberately — it is the only registration that runs *after* Starlight's
       Expressive Code. Revisit when Astro removes the field, and verify the

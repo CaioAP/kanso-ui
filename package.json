@@ -34,7 +34,7 @@
     "@biomejs/biome": "^2.5.3",
     "@changesets/cli": "^2.29.8",
     "@types/node": "^24.10.1",
-    "esbuild": "^0.28.1",
+    "esbuild": "0.28.1",
     "jsdom": "^28.0.1",
     "publint": "^0.3.16",
     "tsup": "^8.5.1",
