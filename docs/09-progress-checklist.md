@@ -742,13 +742,55 @@ stale.
 ---
 
 ## Phase 6 — 1.0.0
-- [ ] API review — naming, prop parity, no leaked internals
-- [ ] Bundle size per entry; tree-shaking verified
+- [x] API review — naming, prop parity, no leaked internals
+- [x] Bundle size per entry; tree-shaking verified
 - [ ] `CONTRIBUTING.md`, issue/PR templates
 - [ ] README polished for the npm landing page
 - [ ] **`1.0.0` published**
 - [ ] Portfolio project document updated with the real outcome line
 - [ ] Blog post written
+
+### What the API review changed
+
+The criterion was `docs/00`'s non-goal — Vue and React only — so the public
+surface is what the two shipped adapters need plus what the docs teach, not a
+speculative adapter-authoring API. Every name in `core`'s entry points was
+traced to its callers. Five had exactly one, and it was never an adapter:
+
+| Removed | Only caller |
+|---|---|
+| `assertDialogName` | `scheduleDialogNameCheck`, same file |
+| `assertFieldControl` | `scheduleFieldControlCheck`, same file |
+| `fieldDescribedBy` | `connectField` |
+| `measureMenuPlacement` | `activateMenu`, same file |
+| `getDismissableLayerCount` | `dismissable.test.ts` — test introspection |
+
+Kept despite no adapter importing them: `switchIds` and its siblings, and
+`tabsTriggerId` / `tabsContentId`. The server-rendering guide teaches the
+derivation, and pointing `aria-controls` at a panel from outside the component
+needs them.
+
+**Not a defect:** Vue exports fewer `type XProps` than React. That is idiom, not
+parity — the parity rule in `CLAUDE.md` is about behaviour, and Vue consumers
+recover prop types through the component type itself.
+
+### Defects Phase 6 found
+
+1. **The tree-shaking check's first marker was wrong, and reported a leak that
+   was not there.** Anatomy part names looked like the natural marker — they are
+   the styling contract, so they cannot be renamed silently. But Card's parts are
+   `header` / `body` / `footer`, and Vue's Dialog teleports with `to: "body"`, so
+   every build reported Card leaking into Dialog. The marker now carries its own
+   scope: `"data-scope":"card"`, verified byte-identical in core, react and vue
+   output. A marker that is a common English word measures nothing.
+
+2. **The first budgets could not fail.** Menu's was 4000 B against a measured
+   2265 B — 76% slack. Budgets are now ~12% over measured, which is the point:
+   a threshold nothing can cross is decoration.
+
+Verified by planting the defect, as since Phase 1: a cross-import from Switch
+into Menu made `pnpm bundle-size` report both the leak and the size regression
+and exit 1; reverting restored it to clean.
 
 ---
 

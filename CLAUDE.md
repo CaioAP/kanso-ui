@@ -71,6 +71,7 @@ pnpm test:a11y      # the adapter projects, where the axe assertions live
 pnpm core-purity    # assert packages/core imports no framework — the thesis
 pnpm contrast       # measure every token pair against its WCAG requirement
 pnpm package-lint   # publint + arethetypeswrong on each package
+pnpm bundle-size    # size per entry + assert no entry pulls in another (build first)
 pnpm changeset      # record a version bump — required on any package change
 
 pnpm --filter docs dev     # Starlight dev server

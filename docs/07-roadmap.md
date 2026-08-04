@@ -300,9 +300,9 @@ decide in Phase 6 whether they belong in 1.0.0.
 
 ## Phase 6 — 1.0.0
 
-- [ ] API review: naming consistency, prop parity across components, no leaked
+- [x] API review: naming consistency, prop parity across components, no leaked
       internals in the public types
-- [ ] Bundle-size check per component entry; verify tree-shaking actually works
+- [x] Bundle-size check per component entry; verify tree-shaking actually works
 - [ ] `CONTRIBUTING.md`, issue/PR templates
 - [ ] README polish — the npm landing page
 - [ ] **`1.0.0`** — the semver promise

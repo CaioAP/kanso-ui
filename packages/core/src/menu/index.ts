@@ -5,7 +5,7 @@ export {
   type MenuGroupProps,
   type MenuItemProps,
 } from './menu.connect';
-export { type ActivateMenuOptions, activateMenu, measureMenuPlacement } from './menu.dom';
+export { type ActivateMenuOptions, activateMenu } from './menu.dom';
 export { initialMenuState, menuIds, menuReducer } from './menu.state';
 export type {
   MenuEvent,

@@ -15,7 +15,6 @@ export { type CardApi, type CardPart, cardAnatomy, connectCard } from './card';
 export {
   type ActivateDialogOptions,
   activateDialog,
-  assertDialogName,
   connectDialog,
   type DialogApi,
   type DialogEvent,
@@ -32,11 +31,7 @@ export {
   scheduleDialogNameCheck,
 } from './dialog';
 export { ariaAttr, dataAttr } from './dom/attrs';
-export {
-  createDismissable,
-  type DismissableOptions,
-  getDismissableLayerCount,
-} from './dom/dismissable';
+export { createDismissable, type DismissableOptions } from './dom/dismissable';
 export { type FocusTrapOptions, trapFocus } from './dom/focus-trap';
 export { getFocusableEdges, getFocusableElements } from './dom/focusable';
 export {
@@ -56,7 +51,6 @@ export {
   type TypeaheadMatchOptions,
 } from './dom/typeahead';
 export {
-  assertFieldControl,
   connectField,
   type FieldApi,
   type FieldControlOptions,
@@ -65,7 +59,6 @@ export {
   type FieldState,
   type FieldStateInit,
   fieldAnatomy,
-  fieldDescribedBy,
   fieldIds,
   fieldShowsErrorText,
   initialFieldState,
@@ -87,7 +80,6 @@ export {
   type MenuSend,
   type MenuState,
   type MenuStateInit,
-  measureMenuPlacement,
   menuAnatomy,
   menuIds,
   menuReducer,
