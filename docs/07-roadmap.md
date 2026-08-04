@@ -258,17 +258,43 @@ recorded where they apply.
 
 ---
 
-## Phase 5.1 — Docs polish
+## Phase 5.1 — Docs polish ✅
 
 Runs alongside Phase 5.
 
-- [ ] Starlight themed to the kanso tokens (`docs/06` §9)
-- [ ] Write the **Accessibility guide** properly — the highest-value page
-- [ ] Theming guide with the portfolio-retheme worked example
-- [ ] SSR guide
-- [ ] Architecture page with the `docs/01` diagram
-- [ ] Lighthouse ≥ 95 on all four categories, measured and recorded
-- [ ] Custom domain if wanted
+- [x] Starlight themed to the kanso tokens (`docs/06` §9)
+- [x] Write the **Accessibility guide** properly — the highest-value page
+- [x] Theming guide with the portfolio-retheme worked example
+- [x] SSR guide
+- [x] Architecture page with the `docs/01` diagram
+- [x] Lighthouse ≥ 95 on all four categories, measured and recorded — **100 on
+      all four, on all six pages measured**
+- [ ] Custom domain if wanted — still undecided, and deliberately not blocking
+
+**Done when:** the site teaches without the reader opening the source, and holds
+the same a11y and performance bar as the library.
+
+**Status:** met. 200 browser tests are green (was 171) and every gate passes.
+
+Two things this phase found are worth carrying forward, because neither was on
+the checklist and both were live on the deployed site:
+
+1. **The introduction page still announced Phase 0** — "the packages are
+   scaffolded but export no components yet" — with all seven components built.
+   The replacement says what is true *and* what is still not: nothing is on npm.
+   The failure mode to avoid was overcorrecting into "install it now".
+2. **Every code block on the site was unreachable by keyboard below ~700px.**
+   Expressive Code renders `<pre>` with `overflow-x: auto` and no `tabindex`, so
+   a block that overflows is a scrollable region with no keyboard access — axe
+   reports `scrollable-region-focusable`, serious. This repo had already found
+   it three times and fixed it three times by shortening the example, which
+   works at 1280px and cannot work at 360px. Fixed structurally instead. See
+   `docs/09` for the two-plugins-for-one-attribute detail.
+
+The IA in `docs/06` §4 names seven pages this phase's checklist does not:
+Installation, Quick start, Styling, and the three Reference pages. They are not
+built. That is a gap between two documents rather than an unfinished task —
+decide in Phase 6 whether they belong in 1.0.0.
 
 ---
 

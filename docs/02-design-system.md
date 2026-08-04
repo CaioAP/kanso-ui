@@ -87,7 +87,7 @@ dark variant. Every one is overridable — that *is* the theming API.
 
   /* structure — see "line vs line-strong" below; the split is an a11y rule */
   --kanso-line:          oklch(88%   0.004 95);
-  --kanso-line-strong:   oklch(64%   0.005 95);
+  --kanso-line-strong:   oklch(62%   0.005 95);
 
   /* accent — restrained indigo, deliberately not the portfolio's vermilion */
   --kanso-accent:        oklch(52%   0.13  258);
@@ -152,6 +152,9 @@ anything.
 
 Full results are recorded in `docs/09`. One value changed as a result:
 `--kanso-line-strong` moved from `78%` → `64%` (light) and `42%` → `51%` (dark).
+Phase 1 then moved the light value again, `64%` → `62%`, once the switch put it
+against `surface-sunk` — a surface it had never been measured on. The listing
+above carries the shipped value; `tokens.css` is the source of truth.
 
 ### `line` vs `line-strong`
 

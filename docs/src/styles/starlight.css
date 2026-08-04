@@ -1,0 +1,128 @@
+/**
+ * Starlight, themed to the kanso tokens. docs/06 §9.
+ *
+ * Three things happen here and nothing else: the --sl-color-* palette is
+ * remapped onto --kanso-*, Starlight's layout spacing is remapped onto the
+ * kanso 4px scale, and its default radii are squared off. Layout structure is
+ * left alone deliberately — §9's last line is the instruction not to fight the
+ * framework, and the value is in the tokens.
+ *
+ * WHY A SINGLE :root BLOCK IS ENOUGH. Starlight declares its palette twice:
+ * once in a bare :root (which is its *dark* theme, the default) and once under
+ * :root[data-theme='light']. Mapping to --kanso-* in one bare :root would
+ * normally lose to that second, more specific block in light mode. It does not,
+ * because every Starlight rule lives inside `@layer starlight.*` and this file
+ * is unlayered — unlayered CSS beats layered CSS at any specificity. So one
+ * block wins in both themes, and the kanso tokens do the theme switching
+ * themselves: tokens.css already resolves --kanso-bg and friends per theme off
+ * the same data-theme attribute Starlight sets.
+ *
+ * The consequence to remember when editing: specificity here means very little
+ * and load order means everything. This file must stay last in the `customCss`
+ * array, after @caioalfonso/kanso-styles, or --kanso-* is not defined yet.
+ *
+ * WHAT IS DELIBERATELY NOT REMAPPED. Starlight's semantic hue ramps — orange,
+ * green, red, purple, used by asides and badges — keep their defaults. They
+ * carry meaning rather than brand, they ship as contrast-tuned foreground and
+ * background pairs, and collapsing them onto kanso's single `danger` token
+ * would put four new colour pairs into `pnpm contrast` for chrome this library
+ * does not own.
+ */
+
+:root {
+  /*
+	 * The ramp, mapped by *use* rather than by lightness. Starlight's ramp
+	 * inverts between themes — gray-1 is near-white in dark and near-black in
+	 * light — and the kanso ink and surface tokens invert with it, so the
+	 * mapping holds in both directions without a second block.
+	 *
+	 * Every pair this produces is already measured in scripts/contrast.mjs:
+	 * fg and fg-muted on bg, surface and surface-sunk; accent on bg;
+	 * on-accent on accent; line-strong on bg and surface.
+	 */
+  --sl-color-white: var(--kanso-fg); /* headings, link titles */
+  --sl-color-gray-1: var(--kanso-fg); /* search dialog text */
+  --sl-color-gray-2: var(--kanso-fg); /* body, sidebar and nav text */
+  --sl-color-gray-3: var(--kanso-fg-muted); /* footer, TOC, edit link */
+  --sl-color-gray-4: var(--kanso-line-strong); /* blockquote rule, ≥ 3:1 */
+  --sl-color-gray-5: var(--kanso-line); /* hairlines */
+  --sl-color-gray-6: var(--kanso-surface); /* subtle fills */
+  --sl-color-gray-7: var(--kanso-surface);
+  --sl-color-black: var(--kanso-bg);
+
+  /*
+	 * fg-faint is absent on purpose. It measures 3.84:1 light and 4.37:1 dark
+	 * and is a large-text-only token — the sidebar and breadcrumbs are exactly
+	 * where it would be tempting and exactly where it would drop the chrome
+	 * below AA. See docs/09.
+	 */
+
+  --sl-color-accent-low: var(--kanso-surface-sunk);
+  --sl-color-accent: var(--kanso-accent);
+  --sl-color-accent-high: var(--kanso-accent);
+
+  --sl-color-text: var(--kanso-fg);
+  --sl-color-text-accent: var(--kanso-accent); /* links, active nav item */
+  --sl-color-text-invert: var(--kanso-on-accent); /* text on an accent fill */
+  --sl-color-bg: var(--kanso-bg);
+  --sl-color-bg-nav: var(--kanso-surface);
+  --sl-color-bg-sidebar: var(--kanso-bg);
+  --sl-color-bg-inline-code: var(--kanso-surface-sunk);
+  --sl-color-bg-accent: var(--kanso-accent);
+  --sl-color-hairline-light: var(--kanso-line);
+  --sl-color-hairline: var(--kanso-line);
+  --sl-color-hairline-shade: var(--kanso-line);
+
+  /*
+	 * "No decorative shadows" is the first row of the docs/02 §1 table, and
+	 * Starlight leans on three of them — under the nav, under pagination links,
+	 * under the search dialog. Flat surfaces and a hairline say the same thing.
+	 */
+  --sl-shadow-sm: none;
+  --sl-shadow-md: none;
+  --sl-shadow-lg: none;
+
+  /*
+	 * Spacing from the kanso 4px scale. The *type* scale is left as Starlight
+	 * ships it, and that is not an oversight: docs/02 defines no type scale to
+	 * match — the library ships no fonts and inherits its host's type (§5), so
+	 * inventing a scale here would be a design decision made in a stylesheet
+	 * rather than in the design system.
+	 */
+  --sl-nav-pad-x: var(--kanso-space-4);
+  --sl-nav-pad-y: var(--kanso-space-3);
+  --sl-sidebar-pad-x: var(--kanso-space-4);
+  --sl-content-pad-x: var(--kanso-space-4);
+  --sl-content-gap-y: var(--kanso-space-4);
+}
+
+@media (min-width: 50em) {
+  :root {
+    --sl-nav-pad-x: var(--kanso-space-6);
+  }
+}
+
+@media (min-width: 72rem) {
+  :root {
+    --sl-content-pad-x: var(--kanso-space-6);
+  }
+}
+
+/*
+ * Square off the radii. Starlight hardcodes 0.25rem / 0.5rem / 999rem in its
+ * component styles rather than reading a variable, so this is an enumeration
+ * rather than a token override, and it is scoped to named chrome on purpose:
+ * a blanket `border-radius: 0` would also flatten the switch thumb in every
+ * live preview, which is --kanso-radius-full by design.
+ */
+:where(.sidebar-content, .right-sidebar-panel) a,
+.pagination-links a,
+.card,
+.sl-link-card,
+.sl-badge,
+.sl-link-button,
+.dialog-frame,
+.mobile-starlight-toc .dropdown,
+.mobile-starlight-toc summary {
+  border-radius: var(--kanso-radius);
+}

@@ -3,14 +3,14 @@
 Living status doc. **Update it as items land** — it is the fastest way for a new
 session to learn where things stand.
 
-**Status: Phase 5 built — all seven v1 components exist. Nothing published yet.**
-Switch, Tabs, Dialog, Menu, Field (with Input and Textarea), Button and Card are
-in core, Vue and React, with 886 unit tests and 171 browser tests green, docs
-pages, and seven embed routes live.
+**Status: Phases 5 and 5.1 done — all seven v1 components exist and the site is
+themed and documented. Nothing published yet.** Switch, Tabs, Dialog, Menu,
+Field (with Input and Textarea), Button and Card are in core, Vue and React,
+with 886 unit tests and 200 browser tests green, docs pages, four guides, and
+seven embed routes live. Lighthouse is 100 across all four categories.
 
 The component list from `docs/00` is complete. What remains before `1.0.0` is
-Phase 5.1 (docs polish) and Phase 6 (API review, bundle size, the semver
-promise).
+Phase 6 (API review, bundle size, the semver promise).
 
 **Publishing is still the one human decision.** `main` carries `0.0.1` in every
 `package.json` but nothing has been pushed to npm, and nothing will until someone
@@ -624,13 +624,120 @@ Two plants, one line each, and both failed in **core and in both adapters**:
 ---
 
 ## Phase 5.1 — Docs polish
-- [ ] Starlight themed to kanso tokens
-- [ ] **Accessibility guide** written properly
-- [ ] Theming guide + portfolio-retheme worked example
-- [ ] SSR guide
-- [ ] Architecture page
-- [ ] Lighthouse ≥ 95 × 4, measured and recorded here
-- [ ] Custom domain (optional)
+- [x] Starlight themed to kanso tokens — `docs/src/styles/starlight.css`
+- [x] **Accessibility guide** written properly
+- [x] Theming guide + portfolio-retheme worked example
+- [x] SSR guide
+- [x] Architecture page
+- [x] Lighthouse measured and recorded (below)
+- [ ] Custom domain (optional) — still undecided
+
+### Lighthouse
+
+Measured against `pnpm --filter docs build` + `astro preview`, not the dev
+server, with Lighthouse 12 headless. Recorded, **not gated** — the roadmap asks
+for numbers, and a CI Lighthouse job is a flaky gate for a static site whose
+real a11y guard is the axe suite.
+
+| Page | Performance | Accessibility | Best practices | SEO |
+|---|---|---|---|---|
+| `/` | 100 | 100 | 100 | 100 |
+| `/getting-started/introduction/` | 100 | 100 | 100 | 100 |
+| `/guides/accessibility/` | 100 | 100 | 100 | 100 |
+| `/guides/theming/` | 100 | 100 | 100 | 100 |
+| `/components/switch/` | 100 | 100 | 100 | 100 |
+| `/components/menu/` | 100 | 100 | 100 | 100 |
+
+The first run scored **96 on best practices** on every page, for one reason:
+Starlight points at `/favicon.svg` by default and there was no such file, so
+every page logged a 404. A missing favicon is a trivial defect that only a tool
+looking at the console reports — which is the argument for measuring rather than
+assuming. `docs/public/favicon.svg` now exists.
+
+**Lighthouse's accessibility score is not axe**, and a 100 there is worth less
+than the 200 browser assertions. It scans a subset of rules on the initial
+render; it cannot open a dialog, press an arrow key or tab through a trap.
+Recorded as a floor, read as a floor.
+
+### Starlight theming — the part that would have failed silently
+
+`--sl-color-*` is remapped onto `--kanso-*` from a **single bare `:root`
+block**, which looks wrong and is not. Starlight declares its palette twice —
+a bare `:root` holding its *dark* theme, and `:root[data-theme='light']` — so a
+bare-`:root` mapping should lose in light mode on specificity. It does not,
+because every Starlight rule sits in `@layer starlight.*` and the theme file is
+unlayered, and unlayered CSS beats layered CSS at any specificity. The kanso
+tokens then do the theme switching themselves, off the same `data-theme`
+attribute Starlight already sets.
+
+The failure mode if that ever changes is the dangerous kind: **light mode keeps
+looking right and dark mode silently reverts to Starlight's stock blue-grey.**
+So `tests/e2e/theme.spec.ts` resolves every mapped variable in *both* themes and
+asserts the two themes produce different colours — the second assertion matters,
+because the first passes vacuously if `data-theme` stops switching anything.
+
+Verified by planting the defect, as in every phase since Phase 1: wrapping the
+theme file in `@layer starlight.base` leaves the build green and fails 5 of the
+7 theme tests, in both themes.
+
+Two deliberate omissions, recorded so they are not read as oversights:
+
+- **`fg-faint` is mapped to nothing.** It is a large-text-only token at
+  3.84:1 / 4.37:1, and the sidebar and breadcrumbs are exactly where it would
+  be tempting and exactly where it would put the chrome below AA.
+- **Starlight's orange / green / red / purple ramps keep their defaults.** They
+  carry meaning rather than brand, they ship as contrast-tuned pairs, and
+  collapsing them onto kanso's single `danger` token would add four colour
+  pairs to `pnpm contrast` for chrome this library does not own.
+
+No new colour pair was needed: every pair the mapping produces — `fg` and
+`fg-muted` on `bg`, `surface` and `surface-sunk`; `accent` on `bg`;
+`on-accent` on `accent`; `line-strong` on `bg` and `surface` — is already
+measured.
+
+### Defects Phase 5.1 found
+
+1. **The site announced Phase 0 to every visitor.** The introduction page said
+   "the packages are scaffolded but export no components yet" with all seven
+   components built, tested and documented. Live, on the deployed site, for the
+   length of four phases. The correction had to avoid the opposite falsehood:
+   nothing is on npm, so "install it" would have been just as wrong.
+2. **Every code block was unreachable by keyboard on a narrow viewport.**
+   Expressive Code renders `<pre>` with `overflow-x: auto` and no `tabindex`,
+   so any block wider than its column is a scrollable region with no keyboard
+   access — `scrollable-region-focusable`, serious, a real WCAG 2.1.1 failure.
+
+   This is the **fourth** appearance of the same finding (Switch page, Menu
+   embed, Card page, now everywhere), and the first three were each fixed by
+   shortening the example. That is why it kept coming back: whether a block
+   overflows depends on the viewport, so shortening works at 1280px and cannot
+   work at 360px, where every realistic sample overflows. Fixed structurally
+   instead, and the test now measures at 360px rather than hoping a default
+   viewport catches it.
+
+   **It took two plugins for one attribute**, and the reason is worth writing
+   down. Starlight runs Expressive Code through two configuration paths that do
+   not share a config object: the `<Code>` component reads `ec.config.mjs` and
+   only that file — passing the same options inline in `astro.config.mjs` fails
+   the build, because that path serialises its config to JSON and a plugin is a
+   function — while markdown and MDX code fences go through the integration,
+   which never sees `ec.config.mjs`. Either plugin alone leaves half the site's
+   code blocks unreachable.
+
+   Two smaller traps on the way: hast property names are camelCase, so
+   `properties.tabindex` is dropped on serialisation and the block builds
+   looking exactly like one that worked; and the rehype plugin has to stay on
+   Astro 7's **deprecated** `markdown.rehypePlugins`, because Starlight
+   registers Expressive Code by pushing onto `processor.options.rehypePlugins`
+   and a plugin passed to `unified()` would therefore run *before* it — against
+   the original `<pre><code>` that Expressive Code throws away.
+3. **A missing favicon cost 4 points of best practices on every page.** See
+   above.
+
+One doc correction landed here too: `docs/02` §3 still listed
+`--kanso-line-strong` at `64%` light, where Phase 1 moved it to `62%` after
+measuring it against `surface-sunk`. `tokens.css` was right; the listing was
+stale.
 
 ---
 
@@ -672,6 +779,16 @@ Two plants, one line each, and both failed in **core and in both adapters**:
       drives `getRovingMove` / `getRovingIndex` from core. Not rebuilt on the Vue
       or React `Tabs` deliberately — see the Phase 2 entry above. Worth revisiting
       only if the toggle ever needs behaviour the core utilities do not cover.
+- [ ] `docs/06` §4's information architecture names seven pages that do not
+      exist and that Phase 5.1's checklist never asked for: Installation, Quick
+      start, Styling, and the three Reference pages (Design tokens, Data
+      attributes, Changelog). Two documents disagreeing rather than an
+      unfinished task. Decide in Phase 6 whether they belong in `1.0.0`; the
+      component pages already carry per-component installation.
+- [ ] `astro.config.mjs` uses Astro 7's deprecated `markdown.rehypePlugins`,
+      deliberately — it is the only registration that runs *after* Starlight's
+      Expressive Code. Revisit when Astro removes the field, and verify the
+      ordering with a build rather than by reading the config.
 - [ ] The `/e2e/switch-form` fixture page ships publicly (noindex, unlinked). It
       exists because constraint validation needs a real form with a real
       stylesheet. Acceptable, but worth revisiting if fixtures multiply.
