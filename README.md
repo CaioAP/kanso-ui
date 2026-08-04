@@ -5,11 +5,13 @@ framework-agnostic core.
 
 > *Kanso* (簡素) — simplicity through the elimination of clutter.
 
-**Status: Phase 1 built, `0.0.1` not yet published.** [Switch](https://kanso-ui.pages.dev/components/switch/)
-is complete in Vue and React from one shared core, with 141 unit tests and 21
-browser tests. Tabs is next. See [`docs/07-roadmap.md`](docs/07-roadmap.md) for
-the build plan and [`docs/09-progress-checklist.md`](docs/09-progress-checklist.md)
-for current state.
+**Status: all seven v1 components built, `0.0.1` not yet published.** Switch,
+Tabs, Dialog, Menu, Field, Button and Card are each complete in Vue and React
+from one shared core — 886 unit tests and 200 browser tests, with every
+component server-rendered in both frameworks under test. Read the
+[documentation](https://kanso-ui.pages.dev), or
+[`docs/09-progress-checklist.md`](docs/09-progress-checklist.md) for the
+current state in detail.
 
 ## The idea
 
@@ -30,7 +32,7 @@ render.
 
 The accessibility is written once. The frameworks are skins.
 
-## Planned packages
+## Packages
 
 | Package | Purpose |
 |---|---|
@@ -39,9 +41,31 @@ The accessibility is written once. The frameworks are skins.
 | `@caioalfonso/kanso-react` | React 19 adapter |
 | `@caioalfonso/kanso-styles` | Optional stylesheet + design tokens |
 
+Each component has its own entry point, and importing one does not pull in the
+others — measured per entry by `pnpm bundle-size`, which fails if it ever stops
+being true.
+
+```tsx
+import { Switch } from '@caioalfonso/kanso-react/switch';
+
+<Switch label="Wi-Fi" checked={checked} onCheckedChange={setChecked} />
+```
+
+```vue
+<script setup>
+import { Switch } from '@caioalfonso/kanso-vue/switch'
+</script>
+
+<template>
+  <Switch v-model="checked" label="Wi-Fi" />
+</template>
+```
+
+The stylesheet is opt-in and separate: `import '@caioalfonso/kanso-styles'`.
+
 ## Components (v1)
 
-Switch · Tabs · Dialog · Menu · Inputs · Button · Card
+Switch · Tabs · Dialog · Menu · Field · Button · Card
 
 Each conforms to its [WAI-ARIA APG](https://www.w3.org/WAI/ARIA/apg/patterns/)
 pattern, with the full keyboard map tested in both frameworks.

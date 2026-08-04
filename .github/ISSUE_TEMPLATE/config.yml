@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://kanso-ui.pages.dev
+    about: Component pages, keyboard maps, and the accessibility, theming and server-rendering guides.
+  - name: Contributing
+    url: https://github.com/CaioAP/kanso-ui/blob/main/CONTRIBUTING.md
+    about: Setup, the four rules CI enforces, and what to run before opening a pull request.

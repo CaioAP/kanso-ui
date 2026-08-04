@@ -744,8 +744,8 @@ stale.
 ## Phase 6 — 1.0.0
 - [x] API review — naming, prop parity, no leaked internals
 - [x] Bundle size per entry; tree-shaking verified
-- [ ] `CONTRIBUTING.md`, issue/PR templates
-- [ ] README polished for the npm landing page
+- [x] `CONTRIBUTING.md`, issue/PR templates
+- [x] README polished for the npm landing page
 - [ ] **`1.0.0` published**
 - [ ] Portfolio project document updated with the real outcome line
 - [ ] Blog post written
