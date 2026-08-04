@@ -12,9 +12,14 @@ seven embed routes live. Lighthouse is 100 across all four categories.
 The component list from `docs/00` is complete. What remains before `1.0.0` is
 Phase 6 (API review, bundle size, the semver promise).
 
-**Publishing is still the one human decision.** `main` carries `0.0.1` in every
-`package.json` but nothing has been pushed to npm, and nothing will until someone
-sets `RELEASE_ENABLED` deliberately — see "Human tasks".
+**`0.0.1` is published.** All four `@caioalfonso/kanso-*` packages went to npm on
+2026-08-04, by hand from a local authenticated session — the sequence `docs/05`
+§9 calls for, so that trusted publishing can be configured against packages that
+exist. `RELEASE_ENABLED` was never set and the release workflow has still never
+run; that is the next thing to close, not a leftover.
+
+The next release is `0.0.2`, not `0.0.1`: seven changesets are pending, and the
+first CI release consumes all of them.
 
 **Every pending changeset is a `patch`, deliberately.** `docs/07` originally
 reserved `0.1.0` for the end of Phase 3; the maintainer has since said `0.1.0`
@@ -169,11 +174,14 @@ are identical, so the duplication cannot silently diverge.
       names confirmed unpublished and free.
 - [x] `NPM_TOKEN` replaced with a granular access token carrying **Bypass 2FA**
       (npm retired the "automation" type). Set 2026-07-30.
-- [ ] Set the `RELEASE_ENABLED` repository variable to `true`. **This is the
-      remaining Phase 1 step.** Doing so publishes `0.0.1` on the next merge to
-      `main`, which is irreversible — npm never allows reusing a version number.
-      Everything else is ready: the changeset is written, the packages build
-      clean, and `publint`/`attw` pass.
+- [x] ~~Set the `RELEASE_ENABLED` repository variable to `true`, which publishes
+      `0.0.1` on the next merge to `main`.~~ **Overtaken by events, and
+      deliberately.** `0.0.1` was published by hand on 2026-08-04 instead, which
+      is what `docs/05` §9 asks for: trusted publishing is configured per package
+      on npmjs.com and needs the package to exist first, so the first release
+      cannot come from the credential-free path. `RELEASE_ENABLED` remains unset
+      and the guard remains in place — see the open questions below for what
+      replaces it.
 - [x] GitHub repo created and pushed — `github.com/CaioAP/kanso-ui`
 - [x] `main` protected, `verify` required to merge
 - [x] Cloudflare Pages project created — `kanso-ui.pages.dev`
@@ -198,13 +206,23 @@ are identical, so the duplication cannot silently diverge.
 - [x] `/embed/switch`
 - [x] Playwright + axe on the docs site — 21 tests, wired into CI
 - [x] Changeset written
-- [ ] **Published `0.0.1`** — needs `RELEASE_ENABLED`, a human decision
-- [x] External install verified from a clean directory — real `pnpm pack`
-      tarballs installed with plain `npm` into a project outside the workspace,
-      so nothing could resolve through the monorepo. Barrel *and* `./switch`
-      subpath entries imported and server-rendered in both frameworks; types
-      resolve under both `bundler` and `node16`. The only thing left unproven is
-      the registry round-trip itself.
+- [x] **Published `0.0.1`** — 2026-08-04, by hand from a local authenticated
+      session rather than through CI, per `docs/05` §9. `RELEASE_ENABLED` was
+      never set; the release workflow has still never run end to end.
+- [x] External install verified from a clean directory — first against real
+      `pnpm pack` tarballs, then **against the registry itself** once `0.0.1`
+      was out. The registry round-trip, previously the one unproven thing, now
+      checks out: `npm install` into a project outside the workspace resolved
+      the adapters' `"@caioalfonso/kanso-core": "^0.0.1"` from npm, which is the
+      published proof that pnpm rewrote `workspace:^` on the way out. Root and
+      `./switch` subpaths import, both frameworks server-render with
+      `role="switch"` and the right `aria-checked`, the published core carries no
+      framework import, the five exports cut in Phase 6 are absent from the
+      published surface, `switchIds` and `tabsTriggerId` are still there, and the
+      declarations typecheck under `nodenext` + `strict` with
+      `skipLibCheck: false` — so the library's own `.d.ts` is checked, not just
+      the call site. All 21 entries re-verified isolated when bundled from
+      `node_modules` rather than from local `dist`.
 - [ ] Portfolio: Sanity `project` document
 - [ ] Portfolio: playground entry + iframe embed
 
@@ -795,11 +813,24 @@ and exit 1; reverting restored it to clean.
 ---
 
 ## Open questions / decisions pending
-- [ ] Move CI publishing to npm **trusted publishing** (OIDC) once `0.0.1` is
-      out. 2FA-bypassing tokens are being deprecated for direct publishing, and
-      trusted publishing needs no stored credential — but it is configured per
-      package on npmjs.com, so the package must exist first. `id-token: write` is
-      already granted in `release.yml`.
+- [ ] Move CI publishing to npm **trusted publishing** (OIDC). **Now unblocked:**
+      `0.0.1` is out, so all four packages exist and can be configured on
+      npmjs.com. `id-token: write` is already granted in `release.yml`. The
+      sequence from here:
+      1. Configure trusted publishing for each of the four packages, pointing at
+         `CaioAP/kanso-ui` and the `release.yml` workflow.
+      2. `gh secret delete NPM_TOKEN` — once OIDC works there is no reason to
+         keep a long-lived credential, and 2FA-bypassing tokens are being
+         deprecated for direct publishing anyway.
+      3. Drop `NPM_TOKEN` / `NODE_AUTH_TOKEN` from `release.yml`'s env.
+      4. Remove the `RELEASE_ENABLED` guard. Its whole purpose was to stop an
+         accidental publish of an unclaimed version, and `docs/05` §8 says it can
+         go once a version is on the registry — npm rejects republishing `0.0.1`,
+         so the window is closed permanently.
+      Do 1–3 before 4: removing the guard while CI still has a token is the one
+      ordering that can publish something nobody intended.
+      The first CI release will be `0.0.2`, consuming the seven pending
+      changesets.
 - [x] ~~`docs/01` §8 and `docs/03` §1 disagree on Switch's hidden input.~~
       Resolved at the top of Phase 1: `docs/03` won, `docs/01` §8 was amended,
       and `hidden-input` is now a named part. §8 also carried two other defects,

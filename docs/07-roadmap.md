@@ -62,11 +62,15 @@ Rails only. Nothing user-visible.
 
 **Human tasks (block Phase 1's publish step):**
 - [x] `npm adduser` → the `@caioalfonso` scope is free, all four names unpublished
-- [ ] Replace `NPM_TOKEN` — the current one prompts for a one-time password,
-      which no CI job can answer. npm retired the "automation" type; use a
-      granular access token with **Bypass 2FA** checked (`docs/05` §9)
-- [ ] Set the `RELEASE_ENABLED` repository variable, but **only** when Phase 1 is
-      ready to publish `0.0.1` (`docs/05` §8 explains the guard)
+- [x] ~~Replace `NPM_TOKEN`~~ — **superseded.** A granular Bypass-2FA token was
+      set on 2026-07-30, but `0.0.1` was ultimately published by hand, so CI has
+      still never used it. The replacement is trusted publishing (OIDC), which
+      stores no credential at all; the token should be deleted once that is
+      configured. See `docs/09`'s open questions.
+- [x] ~~Set the `RELEASE_ENABLED` repository variable~~ — **overtaken by
+      events.** `0.0.1` was published by hand instead, because trusted publishing
+      is configured per package and needs the package to exist first (`docs/05`
+      §9). The variable is still unset and the guard still stands.
 - [x] Create the GitHub repo, push — `github.com/CaioAP/kanso-ui`
 - [x] Set `main` protected, requiring the `verify` check
 - [x] Create the Cloudflare Pages project (Pages flow — **not** Workers)
@@ -108,11 +112,12 @@ Resist adding a second component here, however easy it looks.
 - [x] `ComponentPreview` built: framework toggle, knobs, Shiki source, copy
 - [x] `/embed/switch` route
 - [x] Playwright + axe on the docs site
-- [ ] Changeset → **publish `0.0.1` to npm**
-- [x] Verify from outside: fresh dir, install, import, render. Done against real
-      `pnpm pack` tarballs rather than the registry, which catches the same
-      `exports` and `dependencies` bugs without needing a publish first. Repeat
-      against the registry once `0.0.1` is out.
+- [x] Changeset → **publish `0.0.1` to npm** — 2026-08-04, by hand from a local
+      authenticated session rather than through CI, per `docs/05` §9
+- [x] Verify from outside: fresh dir, install, import, render. Done first against
+      real `pnpm pack` tarballs, which catches the same `exports` and
+      `dependencies` bugs without needing a publish — and then repeated against
+      the registry once `0.0.1` was out. Both pass; see `docs/09`.
 - [ ] Portfolio: create the Sanity `project` document (`docs/08`)
 - [ ] Portfolio: playground entry iframing `/embed/switch`
 
