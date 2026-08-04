@@ -3,7 +3,6 @@ export { connectDialog, type DialogApi } from './dialog.connect';
 export {
   type ActivateDialogOptions,
   activateDialog,
-  assertDialogName,
   scheduleDialogNameCheck,
 } from './dialog.dom';
 export { dialogIds, dialogReducer, initialDialogState } from './dialog.state';

@@ -1,0 +1,52 @@
+name: Feature request
+description: Propose a component, a prop, or a change to the API
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The v1 scope is fixed and small on purpose: Switch, Tabs, Dialog, Menu,
+        Field, Button, Card. More components, more adapters (Svelte, Solid),
+        `asChild` polymorphic rendering and Floating UI positioning are all
+        **deliberately deferred** rather than overlooked — see the
+        "Deliberately deferred" section of `docs/07-roadmap.md`.
+
+        Proposing one of those is still welcome. It just helps to know it is a
+        known trade-off rather than an oversight.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The problem, not the solution. What does your app need that it cannot express today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would the API look like?
+      description: Rough is fine. If it is a new prop, show the call site.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What did you try instead?
+      description: |
+        Components expose `data-part` and `data-state`, and the core functions
+        are importable directly — sometimes the escape hatch already exists.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: both-frameworks
+    attributes:
+      label: Does this hold in both frameworks?
+      description: |
+        Behaviour lives once, in core, and both adapters ship it together. A
+        proposal that only makes sense in one framework usually needs reshaping.
+      options:
+        - label: I think this makes sense for both React and Vue
+          required: false

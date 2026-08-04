@@ -59,6 +59,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm package-lint
 
+      # Bundles every component entry from dist and asserts none of them pulls
+      # in another component. `"sideEffects": false` is a claim; this measures
+      # whether it holds. Must run after the build — it reads dist, not src.
+      - name: Bundle size and tree-shaking
+        if: ${{ !cancelled() }}
+        run: pnpm bundle-size
+
       - name: Build docs site
         if: ${{ !cancelled() }}
         run: pnpm --filter docs build

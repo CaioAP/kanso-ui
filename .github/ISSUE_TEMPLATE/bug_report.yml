@@ -1,0 +1,68 @@
+name: Bug report
+description: Something behaves differently from what the docs or the ARIA pattern say
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Accessibility bugs are bugs. A broken keyboard map, a focus trap that
+        leaks, or a wrong ARIA attribute all belong here.
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Where does it happen?
+      options:
+        - React
+        - Vue
+        - Both
+        - Core only (no framework involved)
+    validations:
+      required: true
+
+  - type: input
+    id: component
+    attributes:
+      label: Component
+      placeholder: Switch, Tabs, Dialog, Menu, Field, Button, Card
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen, and what happens instead
+      description: |
+        If the expected behaviour comes from a spec, link it — the WAI-ARIA APG
+        pattern or a WCAG success criterion. That makes it much faster to
+        confirm, and it usually tells us which test was missing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: |
+        A minimal component, or a link to a StackBlitz. If it is keyboard
+        behaviour, list the exact keys pressed in order and where focus was
+        when you started.
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "@caioalfonso/kanso-react 0.0.1, react 19.2.0, node 24"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: assistive-tech
+    attributes:
+      label: Did you hit this with assistive technology?
+      description: Optional, but it changes how the fix gets verified.
+      options:
+        - label: Yes — screen reader, voice control, switch access, or similar
+          required: false
