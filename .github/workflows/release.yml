@@ -14,20 +14,18 @@ permissions:
 
 jobs:
   release:
-    # Publishing is off until Phase 1 deliberately ships 0.0.1. Set the
-    # RELEASE_ENABLED repository variable to "true" at that point.
+    # The RELEASE_ENABLED guard that used to sit here is gone, deliberately.
     #
-    # This guard exists because the first run of this workflow tried to publish.
-    # The changesets action runs its publish step whenever no changesets are
-    # pending — which is the "Version Packages PR just merged" state, but is
-    # indistinguishable from "no changeset was ever written". With the packages
-    # at 0.0.0 and absent from the registry, npm accepts that as a real version,
-    # so an ordinary merge would have burned 0.0.0 permanently. npm does not
-    # allow republishing a version, even after unpublishing.
+    # It existed because the changesets action runs its publish step whenever no
+    # changesets are pending — the state right after a Version Packages PR
+    # merges, but indistinguishable from "no changeset was ever written". With
+    # the packages at 0.0.0 and absent from the registry, npm would have accepted
+    # that as a real version and burned it permanently.
     #
-    # The run only failed because the token demanded a 2FA code. A working token
-    # would have published. Do not remove this guard before 0.0.1 is out.
-    if: ${{ vars.RELEASE_ENABLED == 'true' }}
+    # 0.0.1 is now on the registry, and npm rejects republishing a version that
+    # exists, even after unpublishing. An unintended run can no longer take a
+    # version number that was not meant to be taken, which is the whole thing the
+    # guard protected. See docs/05 §8, which anticipated removing it here.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -44,10 +42,19 @@ jobs:
 
       # Opens a "Version Packages" PR when changesets are pending; publishes
       # when that PR is merged. See docs/05 §8.
+      #
+      # No NPM_TOKEN. Authentication is npm trusted publishing (OIDC): the
+      # `id-token: write` permission above lets the job mint a short-lived
+      # credential that npm exchanges for publish rights, so there is no
+      # long-lived secret to leak or rotate. Configured per package on
+      # npmjs.com, which is why 0.0.1 had to be published by hand first.
+      #
+      # `changeset publish` shells out to pnpm, not npm, so this depends on
+      # pnpm's OIDC support — present in pnpm 10.x (this repo pins 10.30.3) and
+      # regressed in 11.0.8, see pnpm/pnpm#11513. Check that issue before
+      # bumping the major.
       - uses: changesets/action@v1
         with:
           publish: pnpm release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -813,24 +813,31 @@ and exit 1; reverting restored it to clean.
 ---
 
 ## Open questions / decisions pending
-- [ ] Move CI publishing to npm **trusted publishing** (OIDC). **Now unblocked:**
-      `0.0.1` is out, so all four packages exist and can be configured on
-      npmjs.com. `id-token: write` is already granted in `release.yml`. The
-      sequence from here:
-      1. Configure trusted publishing for each of the four packages, pointing at
-         `CaioAP/kanso-ui` and the `release.yml` workflow.
-      2. `gh secret delete NPM_TOKEN` — once OIDC works there is no reason to
-         keep a long-lived credential, and 2FA-bypassing tokens are being
-         deprecated for direct publishing anyway.
-      3. Drop `NPM_TOKEN` / `NODE_AUTH_TOKEN` from `release.yml`'s env.
-      4. Remove the `RELEASE_ENABLED` guard. Its whole purpose was to stop an
-         accidental publish of an unclaimed version, and `docs/05` §8 says it can
-         go once a version is on the registry — npm rejects republishing `0.0.1`,
-         so the window is closed permanently.
-      Do 1–3 before 4: removing the guard while CI still has a token is the one
-      ordering that can publish something nobody intended.
-      The first CI release will be `0.0.2`, consuming the seven pending
-      changesets.
+- [x] ~~Move CI publishing to npm **trusted publishing** (OIDC).~~ **Done
+      2026-08-04, in the order the ordering constraint required:** `0.0.1`
+      published by hand → trusted publishing configured for all four packages →
+      `NPM_TOKEN` secret deleted → the token removed from `release.yml`'s env →
+      the `RELEASE_ENABLED` guard removed. Secrets and variables both list empty
+      now. CI holds no npm credential at all; `id-token: write` mints a
+      short-lived one per run.
+
+      The guard came out last on purpose. It existed to stop an unintended
+      publish of an unclaimed version, and removing it while CI still held a
+      working token is the single arrangement that could have done exactly that.
+      It is safe to remove now for the reason `docs/05` §8 always gave: npm
+      rejects republishing a version that exists, so `0.0.1` cannot be retaken.
+
+      **One dependency worth remembering.** `changeset publish` shells out to
+      pnpm, not npm, so this rests on pnpm's OIDC support — present in 10.x
+      (pinned here at 10.30.3), regressed in 11.0.8
+      ([pnpm/pnpm#11513](https://github.com/pnpm/pnpm/issues/11513)). Check that
+      issue before bumping pnpm's major. The failure mode is safe either way: a
+      broken exchange fails the publish rather than publishing the wrong thing.
+- [ ] **The release pipeline has still never run end to end.** Every step above
+      is configured but unexercised — the first merge to `main` with pending
+      changesets will open a Version Packages PR, and merging *that* is the run
+      that finally proves it. Seven changesets are pending, so the first CI
+      release is `0.0.2`. Watch that run.
 - [x] ~~`docs/01` §8 and `docs/03` §1 disagree on Switch's hidden input.~~
       Resolved at the top of Phase 1: `docs/03` won, `docs/01` §8 was amended,
       and `hidden-input` is now a named part. §8 also carried two other defects,
