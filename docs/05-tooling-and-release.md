@@ -216,12 +216,14 @@ Flow:
 
 ```yaml
 # .github/workflows/release.yml
+permissions:
+  id-token: write          # mints the OIDC credential; there is no NPM_TOKEN
+
 - uses: changesets/action@v1
   with:
     publish: pnpm release
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
 ### The publish trap, found the hard way
@@ -236,10 +238,14 @@ So an ordinary merge with no changeset publishes whatever version is in
 `package.json`. The first run of this workflow did exactly that and was stopped
 only by a 2FA prompt on the token.
 
-The job is therefore gated on a `RELEASE_ENABLED` repository variable, which
-stays unset until Phase 1 ships `0.0.1` on purpose. After that the guard can be
-removed: once a version is on the registry, npm rejects republishing it, so the
-accidental-publish window closes permanently.
+The job was therefore gated on a `RELEASE_ENABLED` repository variable until a
+version existed on the registry.
+
+**The guard was removed on 2026-08-04**, once `0.0.1` was published. That is the
+condition it was always waiting for: npm rejects republishing a version that
+exists, even after `npm unpublish`, so an unintended run can no longer take a
+version number nobody meant to take. The variable was never set — `0.0.1` went
+out by hand instead, for the reason in §9.
 
 npm does **not** allow reusing a version number, even after `npm unpublish`. A
 burned `0.0.0` is burned.
@@ -286,20 +292,38 @@ Scoped packages default to **restricted**. Every package needs:
 
 Forgetting this is the classic first-publish failure.
 
-For CI publishing, npm no longer offers an "automation" token type. The
-equivalent is a **granular access token** with **Bypass two-factor
-authentication (2FA)** checked, `Read and write` on packages, and the IP-range
-field left empty — GitHub runners rotate addresses, so any range breaks CI.
-Store it as the `NPM_TOKEN` repository secret. Never commit it, never put it in
-an `.npmrc` in the repo.
+**CI holds no npm credential.** Publishing is authenticated with **trusted
+publishing** (OIDC): the `id-token: write` permission in `release.yml` lets the
+job mint a short-lived token that npm exchanges for publish rights. Nothing to
+leak, nothing to rotate, nothing to store.
 
-npm is deprecating 2FA-bypassing tokens for direct publishing. The replacement is
-**trusted publishing** (OIDC), which needs no long-lived credential at all — the
-`id-token: write` permission is already set in `release.yml` for it. Trusted
-publishing has to be configured per package on npmjs.com, which requires the
-package to exist, so the sequence is: publish `0.0.1` by hand from a local
-authenticated session, then configure trusted publishing for every subsequent
-release and delete the token.
+Historical note, since the token route is what most guides still describe: npm
+retired the "automation" token type, and the nearest equivalent is a granular
+access token with **Bypass two-factor authentication (2FA)** checked, `Read and
+write` on packages, and the IP-range field empty — GitHub runners rotate
+addresses, so any range breaks CI. This repo used one briefly and **deleted it
+on 2026-08-04**. If you ever reintroduce one: never commit it, and never put it
+in an `.npmrc` in the repo.
+
+`changeset publish` shells out to **pnpm**, not npm, so OIDC here depends on
+pnpm's support for it — present in 10.x (this repo pins 10.30.3) and regressed
+in 11.0.8 ([pnpm/pnpm#11513](https://github.com/pnpm/pnpm/issues/11513)). Check
+that before bumping pnpm's major. The failure mode is safe: a broken exchange
+fails the publish, it cannot publish the wrong thing.
+
+Trusted publishing is configured **per package** on npmjs.com and requires the
+package to exist, which is a chicken-and-egg the first release has to break by
+hand. That sequence is done, in this order, and the order is the point:
+
+1. `0.0.1` published by hand from a local authenticated session — 2026-08-04.
+2. Trusted publishing configured for all four packages.
+3. `NPM_TOKEN` deleted from the repository secrets.
+4. `NPM_TOKEN` / `NODE_AUTH_TOKEN` removed from `release.yml`'s env.
+5. The `RELEASE_ENABLED` guard removed.
+
+Steps 3 and 4 come before 5 deliberately. Removing the guard while CI still
+holds a working token is the one arrangement that can publish something nobody
+intended.
 
 > **Unverified:** at the time these docs were written, the account did not exist and
 > npm's user endpoint requires auth, so `caioalfonso` could not be confirmed
