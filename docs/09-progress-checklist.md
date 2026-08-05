@@ -3,10 +3,10 @@
 Living status doc. **Update it as items land** — it is the fastest way for a new
 session to learn where things stand.
 
-**Status: Phases 5 and 5.1 done — all seven v1 components exist and the site is
-themed and documented. Nothing published yet.** Switch, Tabs, Dialog, Menu,
+**Status: Phases 5, 5.1, 5.2 and 6 done — all seven v1 components exist, the
+site is themed and documented, and `0.0.1` is on npm.** Switch, Tabs, Dialog, Menu,
 Field (with Input and Textarea), Button and Card are in core, Vue and React,
-with 886 unit tests and 200 browser tests green, docs pages, four guides, and
+with 894 unit tests and 207 browser tests green, docs pages, four guides, and
 seven embed routes live. Lighthouse is 100 across all four categories.
 
 The component list from `docs/00` is complete. What remains before `1.0.0` is
@@ -15,10 +15,11 @@ Phase 6 (API review, bundle size, the semver promise).
 **`0.0.1` is published.** All four `@caioalfonso/kanso-*` packages went to npm on
 2026-08-04, by hand from a local authenticated session — the sequence `docs/05`
 §9 calls for, so that trusted publishing can be configured against packages that
-exist. `RELEASE_ENABLED` was never set and the release workflow has still never
-run; that is the next thing to close, not a leftover.
+exist. The `RELEASE_ENABLED` guard has since been removed and publishing moved to
+OIDC (see *Open questions* below), but **the release workflow has still never
+completed a publish** — that is the next thing to close, not a leftover.
 
-The next release is `0.0.2`, not `0.0.1`: seven changesets are pending, and the
+The next release is `0.0.2`, not `0.0.1`: eight changesets are pending, and the
 first CI release consumes all of them.
 
 **Every pending changeset is a `patch`, deliberately.** `docs/07` originally
@@ -809,6 +810,189 @@ recover prop types through the component type itself.
 Verified by planting the defect, as since Phase 1: a cross-import from Switch
 into Menu made `pnpm bundle-size` report both the leak and the size regression
 and exit 1; reverting restored it to clean.
+
+---
+
+## Phase 5.2 — Preview chrome and alignment
+
+Five defects reported against the live site on 2026-08-04, from screenshots.
+**Four of them are one bug.** They are listed separately because that is how
+they present, and grouped in the fix because that is what they are.
+
+- [x] Starlight's markdown margins stop leaking into previews
+  - [x] 1 — Switch label sits below the track instead of centred on it
+  - [x] 2 — Tabs preview misaligned the same way
+  - [x] 3 — Field error message pushed too far below the control
+  - [x] 4 — Preview-bar buttons at inconsistent heights
+- [x] 5 — Framework switcher moves into the code-frame file tabs
+- [x] E2E specs updated for the renamed tabs, full suite green
+- [x] `docs/06` §6 and `ComponentPreview.astro`'s header comment updated
+- [x] Three regression tests added, each verified by planting the defect
+- [x] 6 — Field shows one message below the control: the error replaces the
+      description (asked for after the first five landed)
+
+### Defects 1–4 are one rule
+
+`@astrojs/starlight/style/markdown.css` line 4:
+
+```css
+.sl-markdown-content
+  :not(a, strong, em, del, span, input, code, br)
+  + :not(a, strong, em, del, span, input, code, br, :where(.not-content *)) {
+  margin-top: 1rem;
+}
+```
+
+Every component page is markdown, so `ComponentPreview` renders *inside*
+`.sl-markdown-content`, and every element in it that has a preceding sibling
+gets 16px of top margin it never asked for. Measured on the live site with
+`getComputedStyle`:
+
+| Element | `margin-top` | Why |
+|---|---|---|
+| Switch `[data-part='control']` | `0px` | first child |
+| Switch `[data-part='label']` | **`16px`** | follows the control |
+| Preview tab "Vue" | `0px` | first child |
+| Preview tab "React" | **`16px`** | follows "Vue" |
+| "Dark preview" | **`16px`** | follows the tablist |
+| Knobs `<fieldset>` | `0px` | first child |
+| Second knob `<label>` | **`16px`** | follows the first |
+
+That table is the whole bug. It explains the switch label dropping below its
+track (`align-items: center` on a child carrying a 16px top margin is not
+centred), the tabs preview, the field error's extra gap on top of the field's
+own `--kanso-space-2`, and the preview bar's ragged heights — the *first* tab
+has no margin and every sibling after it does.
+
+**The fix is `class="not-content"` on the preview root**, Starlight's own escape
+hatch, confirmed present in the installed version as `:where(.not-content *)` —
+descendants only, so `.preview` itself stays in the markdown flow and keeps its
+`margin-block`.
+
+**The fix does not belong in `packages/styles`.** A `margin: 0` reset in
+`switch.css` would ship defensive CSS against one consumer's markdown renderer
+into the library, and would need a changeset for a bug the library does not
+have. The `/embed/*` routes are standalone `.astro` pages outside
+`.sl-markdown-content` and never had this defect — which is itself the proof
+that the cause is the host page, not the component.
+
+### Defect 5 — the switcher
+
+The preview bar carries a Vue/React tablist *and* the source block below it
+carries an Expressive Code frame title (`Switch.vue`). Two pieces of chrome
+naming the same thing. The title bar becomes the switcher: `Switch.vue` and
+`Switch.tsx` as file tabs, driving both the live panel and the source, and the
+preview bar keeps only the theme toggle.
+
+What must survive the move, because it is the thesis demonstrated: `role=
+"tablist"`, `aria-selected`, roving tabindex, and the `getRovingMove` /
+`getRovingIndex` wiring driven from `@caioalfonso/kanso-core`. One tab owns two
+regions, which `aria-controls` supports as a space-separated idref list.
+
+**Noted tradeoff:** the switcher ends up *below* the preview it controls.
+That is the arrangement asked for, and it is a real cost — flipping to React
+changes a live component that may be above the fold. Recorded here rather than
+silently rejected.
+
+The tab labels are the filenames, so they are also the accessible names — the
+seven e2e specs now select `Switch.tsx` rather than `React`. Expressive Code
+still renders a `<figcaption class="header">`, but it is empty and
+`display: none` without a `title`, so nothing stacks under the tabs, and its
+copy button is untouched.
+
+### What locks it
+
+Three Playwright tests, each **verified by planting the defect** — the first two
+by removing `not-content` and rebuilding, the third by restoring the `font`
+shorthand:
+
+| Test | Fixed | Defect planted |
+|---|---|---|
+| `is exempt from Starlight markdown margins` | `[]` | 18 elements with a non-zero `margin-top` |
+| `centres the label on the track rather than below it` | < 1px | 8px off-centre |
+| `the file tabs are set in the same face as the code below them` | `ui-monospace` | `monospace` — the prose fallback |
+
+The first exists because `not-content` is invisible, does nothing locally, and
+is exactly the kind of attribute a later tidy-up deletes. The second is the
+user-visible symptom, asserted directly rather than through the class that
+happens to fix it today.
+
+`the framework toggle swaps panels and source together` was widened at the same
+time: a tab named `Switch.tsx` that moves the live panel but leaves the source
+showing Vue is lying about its own name, and the old test could not see it.
+
+The third test earned its place immediately. The tabs were first written with
+`font: var(--sl-font-mono, inherit)` — the `font` shorthand requires a size and
+a family, and `--sl-font-mono` is a family list that Starlight leaves unset
+unless a theme fills it in, so the declaration was dropped and the filenames
+rendered in the prose face above a mono code block. Biome does not validate
+Astro's scoped CSS that deeply and no test looked at the computed face. The rule
+is now `font-family: var(--sl-font-mono, var(--sl-font-system-mono, monospace))`
+— Starlight's own resolution order, through public properties rather than its
+private `--__sl-font-mono`. The test compares against `pre > code`, not `pre`:
+Expressive Code puts `--ec-codeFontFml` on the inner element and the `pre` keeps
+the UA stylesheet's bare `monospace`. Only the first family is compared, because
+`--__sl-font-mono` appends its own fallback list a second time.
+
+Full suite green: **200 → 203 browser tests**, axe included.
+
+### Defect 6 — one message below the control
+
+Reported after the first five landed: the invalid message should *replace* the
+description, not stack under it. A Field has one region of text below its
+control, whatever that text turns out to be.
+
+The first library change of this session, so unlike defects 1–5 it needs a
+changeset. Spec written first, per `docs/01` §12 — `docs/03` §5 **decision 9**,
+which also corrects decisions 1–3 where they implied both parts show at once.
+
+The discriminating detail, and the reason this is not a two-line render change:
+**`aria-describedby` had to move in the same edit.** `fieldDescribedBy` pushed
+the description id whenever `hasDescription`, in a different file from the render
+condition. Stop rendering the description without touching it and the control
+describes itself with an element that is no longer in the document — the
+dangling-idref class this component exists to prevent, invisible to everyone but
+a screen-reader user. So both halves now read one resolver:
+
+```ts
+fieldMessage(state): 'error-text' | 'description' | undefined
+```
+
+`fieldShowsErrorText` is derived from it rather than restating its condition, so
+it and the new `fieldShowsDescription` cannot both answer yes. A third kind of
+message goes into that ordered list and nowhere else.
+
+The **error** element is the one that stays mounted. That is forced, not chosen:
+decision 3 requires the live region to be in the document before its content
+changes, so the description is the part that can be unmounted.
+
+Measured consequence, fixed in the same pass: an empty live region is
+zero-height but still earns its share of the root's flex `gap`, so a valid field
+carried **8px of dead space** below its message (root bottom 662.1, last text
+bottom 654.1). Cancelled with `margin-block-start: calc(-1 * var(--kanso-space-2))`
+on `:empty`. Not `display: none` — that would take the region out of the
+accessibility tree and put it back in the same commit as its first message,
+which is the announcement failure decision 3 exists to avoid.
+
+**Noted tradeoff, recorded rather than glossed:** a description often carries
+the rule the error is complaining about, and it now disappears while the user is
+correcting it. `docs/03` §5 decision 9 says so, and so does the docs page.
+
+Suite: **886 → 894 unit tests**, **203 → 207 browser tests**. The eight unit
+tests that asserted the old both-at-once behaviour were rewritten rather than
+deleted, and each now asserts the *absence* of the description id — "the error
+id is present" passes on the broken version.
+
+Both halves verified by planting the defect, as since Phase 1:
+
+| Planted | Caught by |
+|---|---|
+| `fieldShowsDescription = state.hasDescription` | 7 tests: core's paired assertion, both adapters' part-order and describedby tests, **and both SSR suites** |
+| the `:empty` margin rule deleted from `field.css` | the layout-gap test, both frameworks |
+
+The SSR pair is the one worth noting: it means the server HTML changes shape
+with the field's state, which is exactly what decision 1 requires and what a
+render-time-only fix would have quietly broken.
 
 ---
 

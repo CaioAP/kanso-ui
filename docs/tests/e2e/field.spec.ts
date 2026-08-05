@@ -40,7 +40,7 @@ test.describe('Field docs page', () => {
     test.describe(`${framework} island`, () => {
       test.beforeEach(async ({ page }) => {
         if (framework === 'react') {
-          await page.getByRole('tab', { name: 'React', exact: true }).click();
+          await page.getByRole('tab', { name: 'Field.tsx', exact: true }).click();
         }
         await hydrated(page, framework);
       });
@@ -65,15 +65,54 @@ test.describe('Field docs page', () => {
         await expect(control(page)).toHaveAccessibleDescription('We only use this to sign you in.');
       });
 
-      test('the error joins the description when the field turns invalid', async ({ page }) => {
+      test('the error replaces the description when the field turns invalid', async ({ page }) => {
         // Composition, resolved by the browser rather than by reading the
         // attribute: this is what a screen reader would actually announce.
+        // One region of text below the control, so the description goes away
+        // rather than being pushed down by the error.
         await knob(page, 'invalid').check();
 
-        await expect(control(page)).toHaveAccessibleDescription(
-          'We only use this to sign you in. Enter an email address.',
-        );
+        await expect(control(page)).toHaveAccessibleDescription('Enter an email address.');
         await expect(control(page)).toHaveAttribute('aria-invalid', 'true');
+        await expect(stage(page).locator('[data-part="description"]')).toHaveCount(0);
+
+        // And back, because a field that could never show its help text again
+        // would pass every assertion above.
+        await knob(page, 'invalid').uncheck();
+        await expect(control(page)).toHaveAccessibleDescription('We only use this to sign you in.');
+      });
+
+      test('shows exactly one line of text below the control, in both states', async ({ page }) => {
+        // The user-visible form of the rule, measured rather than inferred: the
+        // error element stays mounted while valid — it is the live region — so
+        // "one region" has to mean one region with any height, not one element.
+        const visibleMessages = async () =>
+          await stage(page)
+            .locator('[data-part="description"], [data-part="error-text"]')
+            .evaluateAll(
+              (nodes) => nodes.filter((node) => node.getBoundingClientRect().height > 0).length,
+            );
+
+        expect(await visibleMessages()).toBe(1);
+
+        await knob(page, 'invalid').check();
+        expect(await visibleMessages()).toBe(1);
+      });
+
+      test('the empty live region does not pay for the layout gap', async ({ page }) => {
+        // While valid, the error element is mounted and zero-height — but a
+        // flex `gap` does not care about height, so it was adding 8px of dead
+        // space below the message. Measured against the root's own bottom edge,
+        // which is what a consumer sees when the field sits in a bordered card.
+        const slack = await stage(page)
+          .locator('[data-part="root"]')
+          .evaluate((root) => {
+            const boxes = [...root.children].map((child) => child.getBoundingClientRect());
+            const lastWithHeight = boxes.filter((box) => box.height > 0).pop();
+            return root.getBoundingClientRect().bottom - (lastWithHeight?.bottom ?? 0);
+          });
+
+        expect(slack).toBeLessThan(1);
       });
 
       test('the live region is present and empty before the error appears', async ({ page }) => {

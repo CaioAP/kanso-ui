@@ -3,9 +3,11 @@
  *
  * Scoped by [data-scope='field']. One scope root; nothing is portalled.
  *
- * Two rules here carry accessibility rather than looks, and both are explained
- * where they appear: the invalid state is keyed off `data-invalid` and never
- * off `:invalid`, and the error element is never hidden with `display: none`.
+ * Three rules here carry accessibility rather than looks, and each is explained
+ * where it appears: the invalid state is keyed off `data-invalid` and never off
+ * `:invalid`; the error element is never hidden with `display: none`; and the
+ * empty live region's gap is cancelled with a negative margin for that same
+ * reason, rather than by hiding it.
  */
 
 [data-kanso][data-scope='field'] {
@@ -114,6 +116,18 @@
   gap: var(--kanso-space-1);
   color: var(--kanso-danger);
   font-size: 0.875rem;
+}
+
+/*
+ * An empty live region is zero-height but still earns its share of the root's
+ * `gap` — 8px of dead space under the message, measured. Cancelled with a
+ * negative margin rather than `display: none`, which would take the region out
+ * of the accessibility tree and put its first message back in the same commit
+ * as the region itself: the exact announcement failure this file is arranged to
+ * avoid. The element keeps its box, it just stops paying for the gap.
+ */
+[data-scope='field'] [data-part='error-text']:empty {
+  margin-block-start: calc(-1 * var(--kanso-space-2));
 }
 
 /*

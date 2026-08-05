@@ -82,6 +82,26 @@ describe('Field — rendering', () => {
       </Field>,
     );
     const parts = [...root().children].map((child) => child.getAttribute('data-part'));
+    // No description: the field is invalid, and one region of text below the
+    // control is the contract. The error element is still last because it is
+    // mounted whenever a message was supplied — it is the live region.
+    expect(parts).toEqual(['label', 'control', 'error-text']);
+  });
+
+  it('shows the description again once the field is valid', () => {
+    const { rerender } = render(
+      <Field label="Email" description="Help" errorText="Bad" invalid>
+        <Input />
+      </Field>,
+    );
+
+    rerender(
+      <Field label="Email" description="Help" errorText="Bad">
+        <Input />
+      </Field>,
+    );
+
+    const parts = [...root().children].map((child) => child.getAttribute('data-part'));
     expect(parts).toEqual(['label', 'control', 'description', 'error-text']);
   });
 });
@@ -110,9 +130,15 @@ describe('Field — aria-describedby, the four cases', () => {
     expect(control()).toHaveAccessibleDescription('Enter an email address.');
   });
 
-  it('points at both, description first', () => {
+  it('points at the error alone when both were supplied, never at both', () => {
+    // The description is not rendered while an error is showing, so a control
+    // still describing it would be pointing at nothing. Asserted through the
+    // accessible description, which is computed from the live DOM — a dangling
+    // idref contributes nothing and would show up as the error text alone
+    // either way, so the absence of the element is asserted too.
     setup({ description: 'Help text.', errorText: 'Enter an email address.', invalid: true });
-    expect(control()).toHaveAccessibleDescription('Help text. Enter an email address.');
+    expect(control()).toHaveAccessibleDescription('Enter an email address.');
+    expect(document.querySelector('[data-part="description"]')).toBeNull();
   });
 
   it('drops the error id while the field is valid', () => {

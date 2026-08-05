@@ -44,6 +44,13 @@ const App = defineComponent({
     ]),
 });
 
+/**
+ * The markup of the first field — the invalid one — up to where the second
+ * begins. The app renders two on purpose: one showing an error, one showing a
+ * description, so an assertion about either cannot be satisfied by the other.
+ */
+const invalidField = (html: string) => html.slice(0, html.lastIndexOf('data-scope="field"'));
+
 async function hydrate(html: string) {
   const container = document.createElement('div');
   container.innerHTML = html;
@@ -69,8 +76,16 @@ describe('Field — server rendering', () => {
     const control = /<input[^>]*type="email"[^>]*>/.exec(html)?.[0] ?? '';
 
     expect(control).toContain('aria-describedby=');
-    expect(control).toContain('-description');
+    // The app renders invalid, so the error is the one message and the
+    // description is not in the document. The server HTML has to say that
+    // already — a description that appears only once JavaScript arrives is the
+    // hydration-shape problem this whole component is arranged to avoid.
     expect(control).toContain('-error');
+    expect(control).not.toContain('-description');
+    // And the element really is absent, not merely unreferenced. Scoped to the
+    // invalid field — the second field in the app is valid and keeps its own
+    // description, which is the other half of the same rule.
+    expect(invalidField(html)).not.toContain('data-part="description"');
   });
 
   it('ships aria-invalid and the state attributes too', async () => {

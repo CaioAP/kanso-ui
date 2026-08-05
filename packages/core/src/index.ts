@@ -60,6 +60,8 @@ export {
   type FieldStateInit,
   fieldAnatomy,
   fieldIds,
+  fieldMessage,
+  fieldShowsDescription,
   fieldShowsErrorText,
   initialFieldState,
   scheduleFieldControlCheck,
