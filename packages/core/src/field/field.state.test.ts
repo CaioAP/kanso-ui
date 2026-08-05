@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fieldDescribedBy, fieldIds, initialFieldState } from './field.state';
+import { fieldDescribedBy, fieldIds, fieldMessage, initialFieldState } from './field.state';
 import type { FieldStateInit } from './field.types';
 
 const state = (init: Partial<FieldStateInit> = {}) => initialFieldState({ id: 'email', ...init });
@@ -69,9 +69,39 @@ describe('fieldDescribedBy — the four cases the roadmap names', () => {
     expect(fieldDescribedBy(state({ hasErrorText: true }))).toBeUndefined();
   });
 
-  it('composes both, description first', () => {
+  it('is the error id *alone* when both were supplied and the field is invalid', () => {
+    // Not "the error id is present" — the description id must be absent. The
+    // description is not rendered while an error is showing, so referencing it
+    // would be a dangling idref, and a test that only checked for inclusion
+    // would pass on the version that leaves it in.
     const both = state({ hasDescription: true, hasErrorText: true, invalid: true });
-    expect(fieldDescribedBy(both)).toBe('email-description email-error');
+    expect(fieldDescribedBy(both)).toBe('email-error');
+  });
+
+  it('falls back to the description as soon as the field is valid again', () => {
+    const both = state({ hasDescription: true, hasErrorText: true });
+    expect(fieldDescribedBy(both)).toBe('email-description');
+  });
+});
+
+describe('fieldMessage — one region of text, never two', () => {
+  it('is the description when there is no error to show', () => {
+    expect(fieldMessage(state({ hasDescription: true }))).toBe('description');
+    expect(fieldMessage(state({ hasDescription: true, hasErrorText: true }))).toBe('description');
+  });
+
+  it('is the error while invalid, whether or not a description exists', () => {
+    expect(fieldMessage(state({ hasErrorText: true, invalid: true }))).toBe('error-text');
+    expect(fieldMessage(state({ hasDescription: true, hasErrorText: true, invalid: true }))).toBe(
+      'error-text',
+    );
+  });
+
+  it('is undefined when the field has nothing to say', () => {
+    expect(fieldMessage(state())).toBeUndefined();
+    // Invalid with no message supplied is still nothing to say: `aria-invalid`
+    // carries the state, and an empty region carries no text.
+    expect(fieldMessage(state({ invalid: true }))).toBeUndefined();
   });
 });
 

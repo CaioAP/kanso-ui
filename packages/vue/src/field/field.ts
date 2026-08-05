@@ -1,6 +1,7 @@
 import {
   connectField,
   type FieldApi,
+  fieldShowsDescription,
   fieldShowsErrorText,
   initialFieldState,
   scheduleFieldControlCheck,
@@ -122,7 +123,12 @@ export const Field = defineComponent({
       return h('div', { ...attrs, ...bag.rootProps, ref: rootRef }, [
         current.hasLabel ? h('label', bag.labelProps, slots.label?.()) : null,
         slots.default?.(),
-        current.hasDescription ? h('div', bag.descriptionProps, slots.description?.()) : null,
+        // One message region, never two stacked: the error replaces the
+        // description rather than joining it, and core owns that ordering so
+        // this adapter and React's cannot disagree about it.
+        fieldShowsDescription(current)
+          ? h('div', bag.descriptionProps, slots.description?.())
+          : null,
         // Rendered whenever an error message was supplied, and holding it only
         // while invalid. A live region announces changes to a region that is
         // already in the document; mounting the region together with its first

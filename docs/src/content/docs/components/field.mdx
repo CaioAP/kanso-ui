@@ -99,7 +99,7 @@ All of these go on `Field`.
 | Prop | Type | Default | Notes |
 |---|---|---|---|
 | `label` | node / slot | — | Rendered as a real `<label>`. |
-| `description` | node / slot | — | Help text. Always associated when present. |
+| `description` | node / slot | — | Help text. Shown and associated while no error is showing. |
 | `errorText` | node / slot | — | Shown, and associated, only while `invalid`. |
 | `invalid` | `boolean` | `false` | Sets `aria-invalid` and reveals the error. |
 | `disabled` | `boolean` | `false` | Forwarded to the control. |
@@ -156,7 +156,7 @@ Four cases, and all four are tested:
 | — | — | attribute **absent** — not `""` |
 | yes | — | the description id |
 | — | yes | the error id |
-| yes | yes | both, description first |
+| yes | yes | the error id **alone** — see below |
 
 And a fifth that libraries usually get wrong — your own:
 
@@ -170,6 +170,29 @@ And a fifth that libraries usually get wrong — your own:
 The control ends up described by **both**. Every adapter in this library applies
 core's props last so that core wins, which means an `aria-describedby` written
 by hand would otherwise be dropped in silence.
+
+## One message, not two
+
+A field shows **one** region of text below its control. When it goes invalid,
+the error *replaces* the description rather than stacking under it — two
+messages competing for the same spot push the first one away from the control it
+describes, and the pair is twice as tall as either.
+
+The description is removed from the document while an error is showing, so
+`aria-describedby` names the error alone. That is not a second decision: both the
+markup and the attribute come from one function in core, `fieldMessage(state)`,
+which returns which part is currently the message. If they were decided
+separately they would drift, and the control would end up describing itself with
+an element that is not there — a broken reference only a screen-reader user
+would ever notice.
+
+The **error** element is the one that stays mounted, because it is the live
+region (below). The description is the one that yields.
+
+**The tradeoff, stated plainly:** a description often carries the very rule the
+error is complaining about — "8 characters or more" — and it disappears exactly
+when the user is trying to satisfy it. If that matters for your form, put the
+constraint in the error message itself.
 
 ## The error message
 

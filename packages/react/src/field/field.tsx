@@ -1,6 +1,7 @@
 import {
   connectField,
   type FieldApi,
+  fieldShowsDescription,
   fieldShowsErrorText,
   initialFieldState,
   scheduleFieldControlCheck,
@@ -52,7 +53,11 @@ type FieldAttributes = Omit<ComponentPropsWithRef<'div'>, 'children'>;
 export interface FieldProps extends FieldAttributes {
   /** Visible label. Rendered as a real `<label for>`, not `aria-label`. */
   label?: ReactNode;
-  /** Optional help text, always associated when present. */
+  /**
+   * Optional help text. Associated while it is the message being shown — an
+   * error replaces it, because a Field shows one region of text below the
+   * control, never two.
+   */
   description?: ReactNode;
   /** Optional error message. Shown, and associated, only while `invalid`. */
   errorText?: ReactNode;
@@ -131,7 +136,12 @@ export function Field({
             the control" test. */}
         {state.hasLabel ? <label {...api.labelProps}>{label}</label> : null}
         {children}
-        {state.hasDescription ? <div {...api.descriptionProps}>{description}</div> : null}
+        {/*
+          One message region, never two stacked: the error replaces the
+          description rather than joining it, and core owns that ordering so
+          this adapter and Vue's cannot disagree about it.
+        */}
+        {fieldShowsDescription(state) ? <div {...api.descriptionProps}>{description}</div> : null}
         {/*
           Rendered whenever an error message was supplied, and holding it only
           while invalid. A live region announces changes to a region that is
