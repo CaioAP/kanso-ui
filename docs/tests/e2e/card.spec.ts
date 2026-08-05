@@ -33,7 +33,7 @@ test.describe('Card docs page', () => {
     test.describe(`${framework} island`, () => {
       test.beforeEach(async ({ page }) => {
         if (framework === 'react') {
-          await page.getByRole('tab', { name: 'React', exact: true }).click();
+          await page.getByRole('tab', { name: 'Card.tsx', exact: true }).click();
         }
         await hydrated(page, framework);
       });

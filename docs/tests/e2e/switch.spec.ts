@@ -45,19 +45,87 @@ test.describe('Switch docs page', () => {
     expect(results.violations).toEqual([]);
   });
 
-  test('the framework toggle swaps panels', async ({ page }) => {
+  test('the framework toggle swaps panels and source together', async ({ page }) => {
     await expect(panel(page, 'vue')).toBeVisible();
     await expect(panel(page, 'react')).toBeHidden();
+    await expect(page.locator('[data-source="vue"]')).toBeVisible();
+    await expect(page.locator('[data-source="react"]')).toBeHidden();
 
-    await page.getByRole('tab', { name: 'React' }).click();
+    await page.getByRole('tab', { name: 'Switch.tsx' }).click();
 
+    // One tab, two regions. It is the file tab on the source block, so if it
+    // moved the panel and left the source showing Vue it would be lying about
+    // its own name.
     await expect(panel(page, 'react')).toBeVisible();
     await expect(panel(page, 'vue')).toBeHidden();
+    await expect(page.locator('[data-source="react"]')).toBeVisible();
+    await expect(page.locator('[data-source="vue"]')).toBeHidden();
+  });
+
+  /**
+   * Starlight's markdown stylesheet puts `margin-top: 1rem` on every element
+   * that has a preceding sibling, and component pages *are* markdown — so the
+   * preview inherited it. The switch label dropped 16px below its own track,
+   * the second framework tab sat lower than the first, and the field's error
+   * message gained 16px on top of the field's own gap.
+   *
+   * `class="not-content"` on the preview root is the fix. This test is what
+   * keeps it there: the class is invisible, does nothing locally, and is exactly
+   * the kind of thing a later edit removes while tidying. See docs/09 Phase 5.2.
+   */
+  test('is exempt from Starlight markdown margins', async ({ page }) => {
+    const margins = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-preview] *')]
+        .filter((el) => getComputedStyle(el).marginTop !== '0px')
+        .map((el) => `${el.tagName.toLowerCase()}[data-part=${el.getAttribute('data-part')}]`),
+    );
+
+    expect(margins).toEqual([]);
+  });
+
+  /**
+   * The tabs are filenames sitting on top of a code block, so they have to read
+   * as filenames. The first attempt used the `font` shorthand with a family-list
+   * custom property, which is invalid at computed-value time — the declaration
+   * dropped silently and the tabs rendered in the prose face. Nothing but a
+   * computed-style comparison can see that.
+   */
+  test('the file tabs are set in the same face as the code below them', async ({ page }) => {
+    const tab = page.getByRole('tab', { name: 'Switch.vue' });
+    // `pre > code`, not `pre`. Expressive Code puts --ec-codeFontFml on the
+    // inner code element; the `pre` keeps the UA stylesheet's bare `monospace`.
+    const code = page.locator('[data-source="vue"] pre > code').first();
+
+    const [tabFont, codeFont] = await Promise.all([
+      tab.evaluate((el) => getComputedStyle(el).fontFamily),
+      code.evaluate((el) => getComputedStyle(el).fontFamily),
+    ]);
+
+    // First family, not the whole string: Starlight's own `--__sl-font-mono`
+    // appends its fallback list a second time, so the two stacks are equivalent
+    // without being character-identical.
+    const first = (stack: string) => stack.split(',')[0]?.trim();
+
+    expect(first(tabFont)).toBe(first(codeFont));
+    expect(first(tabFont)).not.toBe('monospace');
+  });
+
+  test('centres the label on the track rather than below it', async ({ page }) => {
+    const control = panel(page, 'vue').locator('[data-part="control"]');
+    const label = panel(page, 'vue').locator('[data-part="label"]');
+
+    const [a, b] = await Promise.all([control.boundingBox(), label.boundingBox()]);
+    const centre = (box: Awaited<ReturnType<typeof control.boundingBox>>) =>
+      (box?.y ?? 0) + (box?.height ?? 0) / 2;
+
+    // Sub-pixel, not exact: line-height rounding is legitimate, 16px of stray
+    // margin is not.
+    expect(Math.abs(centre(a) - centre(b))).toBeLessThan(1);
   });
 
   test('the framework toggle is operable by keyboard', async ({ page }) => {
-    const vueTab = page.getByRole('tab', { name: 'Vue' });
-    const reactTab = page.getByRole('tab', { name: 'React' });
+    const vueTab = page.getByRole('tab', { name: 'Switch.vue' });
+    const reactTab = page.getByRole('tab', { name: 'Switch.tsx' });
 
     await vueTab.focus();
     await page.keyboard.press('ArrowRight');
@@ -80,7 +148,7 @@ test.describe('Switch docs page', () => {
     test.describe(`${framework} island`, () => {
       test.beforeEach(async ({ page }) => {
         if (framework === 'react') {
-          await page.getByRole('tab', { name: 'React' }).click();
+          await page.getByRole('tab', { name: 'Switch.tsx' }).click();
         }
         await hydrated(page, framework);
       });

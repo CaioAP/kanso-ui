@@ -98,7 +98,7 @@ The CodePen feeling, without a bundler in the browser. Four parts:
 
 ```
 ┌──────────────────────────────────────────┐
-│  [ Vue | React ]              [ ☾ ]      │  framework + theme toggle
+│                               [ ☾ ]      │  theme toggle
 ├──────────────────────────────────────────┤
 │                                          │
 │            live component                │
@@ -106,6 +106,8 @@ The CodePen feeling, without a bundler in the browser. Four parts:
 ├──────────────────────────────────────────┤
 │  disabled  ☐    checked  ☑   size ▾      │  prop knobs
 ├──────────────────────────────────────────┤
+│ ┌Switch.vue┐ Switch.tsx                  │  framework toggle = file tabs
+├─┴──────────┴─────────────────────────────┤
 │  <Switch checked />              [copy]  │  source, Shiki-highlighted
 └──────────────────────────────────────────┘
 ```
@@ -113,6 +115,17 @@ The CodePen feeling, without a bundler in the browser. Four parts:
 - **Framework toggle** swaps between the Vue island and the React island of the
   same example. Both are rendered; toggling shows/hides. This is the single most
   important interaction on the site — it is the thesis, demonstrated.
+
+  It is rendered as the **file tabs on the source block** — `Switch.vue` and
+  `Switch.tsx` — not as a separate Vue/React control above the preview. The
+  earlier arrangement had two pieces of chrome naming the same thing: a
+  Vue/React tablist in the top bar, and Expressive Code's own frame title
+  reading `Switch.vue` immediately below it. One tab now owns both regions,
+  which `aria-controls` supports as a space-separated idref list, and the
+  `<Code>` blocks pass no `title` so no second filename is rendered.
+
+  The cost, accepted knowingly: the switcher sits *below* the preview it
+  controls. See `docs/09` Phase 5.2.
 - **Prop knobs** are declarative: each example declares its controls, and the
   preview renders checkboxes/selects and passes values through.
 - **Source** is the real example file, read at build time and highlighted with
