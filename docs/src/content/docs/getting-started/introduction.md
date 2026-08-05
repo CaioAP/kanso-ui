@@ -6,11 +6,11 @@ description: What kanso-ui is, what headless means here, and the tradeoff the ar
 kanso-ui is a headless, accessible component library for **Vue 3** and **React 19**,
 built on a single framework-agnostic behaviour core.
 
-:::caution[Not on npm yet]
+:::note[Early days]
 All seven v1 components are built, tested and documented — Switch, Tabs, Dialog,
-Menu, Field, Button and Card — but the packages have not been published to npm.
-There is nothing to install yet. Build from the repository, or follow the
-roadmap there for the release.
+Menu, Field, Button and Card — and `0.0.1` is on npm. The version number is
+honest: the API has not been through a release cycle with real consumers yet, so
+expect it to move. See [Installation](/getting-started/installation/).
 :::
 
 ## What headless means here
