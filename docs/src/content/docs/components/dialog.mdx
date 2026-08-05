@@ -32,30 +32,20 @@ Including the Vue/React toggle above. That is the component working correctly �
 close the dialog and the page comes back.
 :::
 
-## Installation
-
-```bash
-# React
-npm i @caioalfonso/kanso-react
-# Vue
-npm i @caioalfonso/kanso-vue
-```
-
-Import from the component's own entry point so the rest of the library is never
-bundled:
+## Import
 
 ```ts
 import { Dialog } from '@caioalfonso/kanso-react/dialog';
-```
 
-The stylesheet is optional. Without it you get a working, entirely unstyled
-dialog — including the trap and the scroll lock, which are behaviour rather than
-appearance:
-
-```ts
 import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/base';
 import '@caioalfonso/kanso-styles/dialog';
 ```
+
+The stylesheet is optional — without it you get a working, entirely unstyled
+dialog, including the trap and the scroll lock, which are behaviour rather than
+appearance. See [Installation](/getting-started/installation/) for package
+setup, the Vue entry points, and why `tokens` and `base` come along.
 
 ## Anatomy
 

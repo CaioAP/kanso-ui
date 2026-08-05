@@ -19,10 +19,16 @@ attribute names, which are listed on each component's page.
 ## The styling contract
 
 ```ts
-import '@caioalfonso/kanso-styles';         // everything
-import '@caioalfonso/kanso-styles/switch';  // one component
-import '@caioalfonso/kanso-styles/tokens';  // tokens only
+import '@caioalfonso/kanso-styles';         // everything, in one import
+
+import '@caioalfonso/kanso-styles/tokens';  // or: the custom properties
+import '@caioalfonso/kanso-styles/base';    //      the focus ring and primitives
+import '@caioalfonso/kanso-styles/switch';  //      one component at a time
 ```
+
+Going component by component, `tokens` and `base` are not optional extras —
+`tokens` defines the properties every component sheet reads, and `base` carries
+the `:focus-visible` ring. See [Installation](/getting-started/installation/).
 
 Every root element carries a `data-kanso` marker; every part carries
 `data-part`; stateful parts carry `data-state` and boolean markers like

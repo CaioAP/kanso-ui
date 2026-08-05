@@ -10,9 +10,16 @@ npm i @caioalfonso/kanso-styles
 
 ```ts
 import '@caioalfonso/kanso-styles';           // tokens + base + every component
-import '@caioalfonso/kanso-styles/tokens';    // or just the custom properties
-import '@caioalfonso/kanso-styles/switch';    // and one component at a time
+
+import '@caioalfonso/kanso-styles/tokens';    // or, piece by piece:
+import '@caioalfonso/kanso-styles/base';      //   tokens and base are required,
+import '@caioalfonso/kanso-styles/switch';    //   then one component at a time
 ```
+
+`tokens` defines every custom property the component sheets read, and `base`
+carries the `:focus-visible` ring, the reduced-motion opt-out and the clipping
+that hides a form component's mirror input. A component sheet on its own gives
+you an unfocusable-looking control and a stray visible checkbox.
 
 ## Theming
 
