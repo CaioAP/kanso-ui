@@ -87,6 +87,25 @@ describe('Field — rendering', () => {
       },
     );
     const parts = [...root().children].map((child) => child.getAttribute('data-part'));
+    // No description: the field is invalid, and one region of text below the
+    // control is the contract. The error element is still last because it is
+    // mounted whenever a message was supplied — it is the live region.
+    expect(parts).toEqual(['label', 'control', 'error-text']);
+  });
+
+  it('shows the description again once the field is valid', async () => {
+    const { rerender } = field(
+      { invalid: true },
+      {
+        label: () => 'Email',
+        description: () => 'Help',
+        'error-text': () => 'Bad',
+      },
+    );
+
+    await rerender({ invalid: false });
+
+    const parts = [...root().children].map((child) => child.getAttribute('data-part'));
     expect(parts).toEqual(['label', 'control', 'description', 'error-text']);
   });
 });
@@ -111,7 +130,11 @@ describe('Field — aria-describedby, the four cases', () => {
     expect(control()).toHaveAccessibleDescription('Enter an email address.');
   });
 
-  it('points at both, description first', () => {
+  it('points at the error alone when both were supplied, never at both', () => {
+    // The description is not rendered while an error is showing, so a control
+    // still describing it would be pointing at nothing. The element's absence
+    // is asserted too: a dangling idref contributes no text, so the accessible
+    // description alone cannot tell the two versions apart.
     field(
       { invalid: true },
       {
@@ -120,7 +143,8 @@ describe('Field — aria-describedby, the four cases', () => {
         'error-text': () => 'Enter an email address.',
       },
     );
-    expect(control()).toHaveAccessibleDescription('Help text. Enter an email address.');
+    expect(control()).toHaveAccessibleDescription('Enter an email address.');
+    expect(document.querySelector('[data-part="description"]')).toBeNull();
   });
 
   it('drops the error id while the field is valid', () => {

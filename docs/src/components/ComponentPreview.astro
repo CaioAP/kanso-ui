@@ -7,6 +7,18 @@
  * it is the thesis, demonstrated. Both islands are rendered and one is hidden,
  * so switching is instant and neither has to re-mount.
  *
+ * It is rendered as the *file tabs* on the source block — `Switch.vue` and
+ * `Switch.tsx` — rather than as a separate pair of buttons above the preview.
+ * The earlier arrangement had two pieces of chrome naming the same thing: a
+ * Vue/React tablist in the top bar, and Expressive Code's frame title reading
+ * `Switch.vue` directly below it. One tab now owns both regions, which
+ * `aria-controls` supports as a space-separated idref list.
+ *
+ * The known cost: the switcher sits below the preview it controls, so flipping
+ * to React changes a component that may be above the fold. Accepted — the
+ * filename is what a reader is looking for when they want the other framework,
+ * and duplicated chrome was the worse problem. See docs/09, Phase 5.2.
+ *
  * The keyboard behaviour comes from the library, as docs/06 §6 asks — but from
  * `@caioalfonso/kanso-core` directly rather than from the Vue or React adapter.
  * Mounting the toggle as an island of one framework would make the choice
@@ -32,34 +44,34 @@ interface Props {
 }
 
 const { vueSource, reactSource, label } = Astro.props;
+
+// Filenames, not framework names. They are the tab labels, so they are also the
+// accessible names — WCAG 2.5.3 wants those to match, and the e2e specs select
+// on them.
+const files = { vue: `${label}.vue`, react: `${label}.tsx` };
 ---
 
-<div class="preview" data-preview>
-  <div class="preview-bar">
-    <div role="tablist" aria-label={`${label} framework`} class="preview-tabs">
-      <button
-        type="button"
-        role="tab"
-        id={`${label}-tab-vue`}
-        aria-controls={`${label}-panel-vue`}
-        aria-selected="true"
-        data-framework="vue"
-      >
-        Vue
-      </button>
-      <button
-        type="button"
-        role="tab"
-        id={`${label}-tab-react`}
-        aria-controls={`${label}-panel-react`}
-        aria-selected="false"
-        tabindex="-1"
-        data-framework="react"
-      >
-        React
-      </button>
-    </div>
+{/*
+  `not-content` is Starlight's own escape hatch, and it is load-bearing rather
+  than cosmetic. Component pages are markdown, so everything here renders inside
+  `.sl-markdown-content`, where this rule applies:
 
+      .sl-markdown-content :not(a, strong, em, …)
+        + :not(a, strong, em, …, :where(.not-content *)) { margin-top: 1rem }
+
+  Every element with a preceding sibling picked up 16px of top margin it never
+  asked for: the switch label dropped below its own track, the second framework
+  tab sat lower than the first, and the field's error message gained 16px on top
+  of the field's own gap. The class only excludes *descendants*, so `.preview`
+  itself stays in the markdown flow and keeps its `margin-block`.
+
+  Expressive Code sets the same class on its own frames, for the same reason.
+  The `/embed/*` routes are plain `.astro` pages outside `.sl-markdown-content`
+  and never had the defect — which is the proof the cause is the host page and
+  not the components. See docs/09, Phase 5.2.
+*/}
+<div class="preview not-content" data-preview>
+  <div class="preview-bar">
     <button type="button" class="preview-theme" data-theme-toggle aria-pressed="false">
       Dark preview
     </button>
@@ -87,15 +99,43 @@ const { vueSource, reactSource, label } = Astro.props;
 
   <div class="preview-source">
     {/*
-      Titled from `label`, not hardcoded. Both filenames read "Switch" until
+      Named from `label`, not hardcoded. Both filenames read "Switch" until
       Phase 3, so the Tabs page announced its example as `Switch.vue` — a
       component built before there was a second component to notice it with.
     */}
-    <div data-source="vue">
-      <Code code={vueSource} lang="vue" title={`${label}.vue`} />
+    <div role="tablist" aria-label={`${label} framework`} class="preview-files">
+      <button
+        type="button"
+        role="tab"
+        id={`${label}-tab-vue`}
+        aria-controls={`${label}-panel-vue ${label}-source-vue`}
+        aria-selected="true"
+        data-framework="vue"
+      >
+        {files.vue}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id={`${label}-tab-react`}
+        aria-controls={`${label}-panel-react ${label}-source-react`}
+        aria-selected="false"
+        tabindex="-1"
+        data-framework="react"
+      >
+        {files.react}
+      </button>
     </div>
-    <div data-source="react" hidden>
-      <Code code={reactSource} lang="tsx" title={`${label}.tsx`} />
+
+    {/*
+      No `title` on either block. Expressive Code renders a frame header from it,
+      which would stack a second copy of the filename directly under the tabs.
+    */}
+    <div data-source="vue" id={`${label}-source-vue`}>
+      <Code code={vueSource} lang="vue" />
+    </div>
+    <div data-source="react" id={`${label}-source-react`} hidden>
+      <Code code={reactSource} lang="tsx" />
     </div>
   </div>
 </div>
@@ -172,19 +212,13 @@ const { vueSource, reactSource, label } = Astro.props;
   .preview-bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 0.5rem;
     padding: 0.375rem 0.5rem;
     border-block-end: 1px solid var(--sl-color-gray-5);
     background: var(--sl-color-gray-7, var(--sl-color-gray-6));
   }
 
-  .preview-tabs {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  .preview-tabs button,
   .preview-theme {
     padding: 0.25rem 0.625rem;
     border: 1px solid transparent;
@@ -195,10 +229,44 @@ const { vueSource, reactSource, label } = Astro.props;
     cursor: pointer;
   }
 
-  .preview-tabs button[aria-selected='true'] {
-    border-color: var(--sl-color-gray-5);
-    background: var(--sl-color-bg);
-    color: var(--sl-color-white);
+  /*
+   * The file tabs. Styled from the kanso tokens rather than Expressive Code's
+   * --ec-frm-edActTab* variables, even though EC exposes them: the docs theme
+   * already derives EC's palette from kanso, so --ec-frm-edBg *is*
+   * --kanso-surface, and reading the token directly keeps every pair in this
+   * component measurable by `pnpm contrast`.
+   *
+   * Both labels stay at full --kanso-fg contrast. The selected tab is marked by
+   * its background and a 2px accent rule, never by dimming the other one — a
+   * dimmed tab is an unmeasured colour pair and a worse affordance.
+   */
+  .preview-files {
+    display: flex;
+    background: var(--kanso-surface-sunk);
+    border-block-end: 1px solid var(--sl-color-gray-5);
+  }
+
+  .preview-files button {
+    padding: 0.375rem 0.75rem;
+    border: 0;
+    /* Reserved on both tabs, so selecting one does not shift the row. */
+    border-block-start: 2px solid transparent;
+    background: none;
+    color: var(--kanso-fg);
+    /* `font-family`, not the `font` shorthand: `--sl-font-mono` is a family list
+       and Starlight leaves it unset unless a theme fills it in, so
+       `font: var(--sl-font-mono, …)` is either invalid or resolves to `inherit`
+       — the tabs would have rendered in the prose face above a mono code block.
+       The system-mono fallback is Starlight's own resolution order. */
+    font-family: var(--sl-font-mono, var(--sl-font-system-mono, monospace));
+    font-size: 0.8125rem;
+    cursor: pointer;
+  }
+
+  .preview-files button[aria-selected='true'] {
+    /* Merges into the code block below it — same surface, no seam. */
+    border-block-start-color: var(--kanso-accent);
+    background: var(--kanso-surface);
   }
 
   .preview-body {

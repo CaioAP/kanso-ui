@@ -650,16 +650,17 @@ Genuinely valuable because `aria-describedby` composition is what people get wro
 | `invalid` | `boolean` | Sets `aria-invalid`, reveals the error text |
 | `disabled` / `readOnly` / `required` | `boolean` | Forwarded to the control |
 | `label` | node / slot | Rendered as a real `<label>`. Its presence is known at render — decision 1 |
-| `description` | node / slot | Optional help text |
+| `description` | node / slot | Optional help text. Replaced by the error while `invalid` — decision 9 |
 | `errorText` | node / slot | Optional. Shown only while `invalid` |
 
 **The wiring, which is the whole point:**
 
 - `label` gets `for` → control id. Native association, not `aria-label`.
-- `aria-describedby` on the control is the **space-joined** list of whichever of
-  description-id and error-id are present. Both, one, or neither — computed, never
-  hardcoded. Getting this wrong (overwriting rather than composing) is the single
-  most common form-a11y bug.
+- `aria-describedby` on the control is the **space-joined** list of whichever ids
+  point at something that is actually rendered: the id of the one message the
+  field is currently showing, plus the consumer's own. Computed, never hardcoded.
+  Getting this wrong (overwriting rather than composing) is the single most
+  common form-a11y bug.
 - `aria-invalid="true"` when invalid. `required` is the native attribute —
   decision 5 records why, and corrects the `aria-required` this line used to say.
 - Error text lives in a container with `aria-live="polite"` so it is announced when
@@ -708,9 +709,9 @@ component whose server HTML is complete.
 
 **2. `aria-describedby` is composed in core — including the consumer's own.**
 
-The four cases the roadmap names (description only, error only, both, neither)
-are one filter and one join. Two details that a naive implementation gets wrong,
-and both are asserted:
+The cases the roadmap names (description only, error only, both, neither) are one
+resolver and one join. "Both" resolves to the error alone — see decision 9. Two
+details that a naive implementation gets wrong, and both are asserted:
 
 - With neither part present the attribute must be **absent**, not `""`. An empty
   `aria-describedby` is not the same as no `aria-describedby`, and a test written
@@ -782,6 +783,41 @@ gains a `textarea` kind.**
 not an input: it has `rows`, it has no `type`, and in React its props type is a
 different interface. Routing it through `element` would type-check by being
 loose, and the looseness is the thing the boundary exists to avoid.
+
+**9. One message below the control, never two stacked. The error replaces the
+description.** *(Added after Phase 5.2, correcting decisions 1–3 above where
+they implied both are shown at once.)*
+
+A Field shows exactly one region of text under its control. While
+`invalid && errorText`, that region is the error; otherwise it is the
+description if there is one. Two stacked messages is the layout that reads as
+broken — the second pushes the first away from the control it belongs to, and
+the pair is twice as tall as either.
+
+Three consequences, and the middle one is the whole reason this is a spec entry
+rather than a CSS tweak:
+
+- **The description is unmounted, not hidden.** It is not a live region, so
+  nothing is lost by removing it.
+- **`aria-describedby` follows the same resolver.** If the render decision and
+  the aria composition were written separately they would drift, and the control
+  would describe itself with an element that is no longer in the document — a
+  dangling idref that only a screen-reader user can be misled by. So there is one
+  function, `fieldMessage(state)`, returning `'error-text' | 'description' |
+  undefined`; `fieldDescribedBy` reads it and so do both adapters, through
+  `fieldShowsErrorText` / `fieldShowsDescription`.
+- **The error element still stays mounted**, empty, exactly as decision 3
+  requires. That is why the description is the one that yields: the live region
+  cannot be the part that comes and goes.
+
+A third kind of message — a character counter, a pending-validation note — is
+inserted into `fieldMessage`'s ordered list and nowhere else. That extensibility
+is why it returns a part name rather than two booleans that can disagree.
+
+**Noted tradeoff:** descriptions often carry the rule the error is complaining
+about ("8 characters or more"), and hiding it mid-correction is a real loss for
+the user who most needs it. The way out, for a consumer who wants both, is to
+write the constraint into the error message. Recorded rather than glossed over.
 
 ---
 

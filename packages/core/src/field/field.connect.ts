@@ -1,6 +1,6 @@
 import { ariaAttr, dataAttr } from '../dom/attrs';
 import type { Dict, NormalizeProps, PropTypes } from '../types';
-import { fieldDescribedBy } from './field.state';
+import { fieldDescribedBy, fieldMessage } from './field.state';
 import type { FieldControlOptions, FieldState } from './field.types';
 
 export interface FieldApi<T extends PropTypes> {
@@ -124,6 +124,21 @@ export function connectField<T extends PropTypes>(
  * lives in core so the two adapters cannot disagree about when an error is
  * shown. It is deliberately not a field of the api: it answers a question about
  * rendering, not a prop bag.
+ *
+ * Derived from `fieldMessage` rather than restating its condition, so this and
+ * `fieldShowsDescription` cannot both answer yes.
  */
 export const fieldShowsErrorText = (state: FieldState): boolean =>
-  state.hasErrorText && state.invalid;
+  fieldMessage(state) === 'error-text';
+
+/**
+ * Whether the description should be rendered at all.
+ *
+ * Unlike the error, the description is not a live region, so it is unmounted
+ * rather than emptied — nothing announces from it and nothing is lost by
+ * removing it. Which is also why the error is the one that stays mounted and
+ * the description is the one that yields: `docs/03` §5 decision 3 requires the
+ * live region to be in the document before its content changes.
+ */
+export const fieldShowsDescription = (state: FieldState): boolean =>
+  fieldMessage(state) === 'description';

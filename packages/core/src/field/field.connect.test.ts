@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createNormalizer } from '../normalize';
 import type { Dict, PropTypes } from '../types';
 import { fieldAnatomy } from './field.anatomy';
-import { connectField, fieldShowsErrorText } from './field.connect';
+import { connectField, fieldShowsDescription, fieldShowsErrorText } from './field.connect';
 import { initialFieldState } from './field.state';
 import type { FieldStateInit } from './field.types';
 
@@ -136,10 +136,12 @@ describe('connectField — aria-describedby composition', () => {
     expect(api().getInputProps()['aria-describedby']).toBeUndefined();
   });
 
-  it('composes the description, the error and the consumer’s own', () => {
+  it('composes the *showing* message and the consumer’s own, not both messages', () => {
+    // Only one of the two is rendered at a time, so only one may be referenced.
+    // The consumer's id is still appended — theirs is a real element they own.
     const a = api({ hasDescription: true, hasErrorText: true, invalid: true });
     expect(a.getInputProps({ describedBy: 'char-count' })['aria-describedby']).toBe(
-      'email-description email-error char-count',
+      'email-error char-count',
     );
   });
 
@@ -173,6 +175,31 @@ describe('fieldShowsErrorText', () => {
     expect(
       fieldShowsErrorText(initialFieldState({ id: 'x', hasErrorText: true, invalid: true })),
     ).toBe(true);
+  });
+});
+
+describe('fieldShowsDescription', () => {
+  it('is true whenever a description was supplied and no error is showing', () => {
+    expect(fieldShowsDescription(initialFieldState({ id: 'x' }))).toBe(false);
+    expect(fieldShowsDescription(initialFieldState({ id: 'x', hasDescription: true }))).toBe(true);
+    // Invalid, but no message supplied — there is nothing to replace it with.
+    expect(
+      fieldShowsDescription(initialFieldState({ id: 'x', hasDescription: true, invalid: true })),
+    ).toBe(true);
+  });
+
+  it('yields to the error, which is the whole point', () => {
+    const both = initialFieldState({
+      id: 'x',
+      hasDescription: true,
+      hasErrorText: true,
+      invalid: true,
+    });
+
+    // Asserted as a pair. Either one alone can be right while the field still
+    // renders two stacked regions, which is the defect this replaces.
+    expect(fieldShowsDescription(both)).toBe(false);
+    expect(fieldShowsErrorText(both)).toBe(true);
   });
 });
 

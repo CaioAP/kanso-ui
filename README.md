@@ -7,7 +7,7 @@ framework-agnostic core.
 
 **Status: all seven v1 components built, `0.0.1` not yet published.** Switch,
 Tabs, Dialog, Menu, Field, Button and Card are each complete in Vue and React
-from one shared core — 886 unit tests and 200 browser tests, with every
+from one shared core — 894 unit tests and 207 browser tests, with every
 component server-rendered in both frameworks under test. Read the
 [documentation](https://kanso-ui.pages.dev), or
 [`docs/09-progress-checklist.md`](docs/09-progress-checklist.md) for the
