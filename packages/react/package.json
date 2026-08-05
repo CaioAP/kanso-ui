@@ -1,6 +1,6 @@
 {
   "name": "@caioalfonso/kanso-react",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "React 19 adapter for kanso-ui — reactivity and rendering over the framework-agnostic core.",
   "license": "MIT",
   "author": "Caio Alfonso",

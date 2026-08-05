@@ -1,6 +1,6 @@
 {
   "name": "@caioalfonso/kanso-styles",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "Optional stylesheet and design tokens for kanso-ui. Targets data-part / data-state only.",
   "license": "MIT",
   "author": "Caio Alfonso",
