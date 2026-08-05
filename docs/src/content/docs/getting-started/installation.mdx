@@ -1,0 +1,178 @@
+---
+title: Installation
+description: Install the Vue or React adapter, opt into the stylesheet, and import only the components you actually use.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+You install **one adapter** — Vue or React, or both — and optionally the
+stylesheet. The behaviour core comes along as a dependency of the adapter; you
+never install it yourself unless you are writing an adapter of your own.
+
+## Install an adapter
+
+<Tabs syncKey="pkg">
+  <TabItem label="npm">
+    ```bash
+    # React 19
+    npm install @caioalfonso/kanso-react
+    # Vue 3
+    npm install @caioalfonso/kanso-vue
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    # React 19
+    pnpm add @caioalfonso/kanso-react
+    # Vue 3
+    pnpm add @caioalfonso/kanso-vue
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    # React 19
+    yarn add @caioalfonso/kanso-react
+    # Vue 3
+    yarn add @caioalfonso/kanso-vue
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```bash
+    # React 19
+    bun add @caioalfonso/kanso-react
+    # Vue 3
+    bun add @caioalfonso/kanso-vue
+    ```
+  </TabItem>
+</Tabs>
+
+The framework is a **peer dependency**, never a dependency — `react` and
+`react-dom` at `^19`, or `vue` at `^3.5`. That is deliberate: bundling a second
+copy of the framework breaks hooks and reactivity in ways that are miserable to
+debug. Your app supplies the framework; kanso-ui uses the one you already have.
+
+Vue is pinned at `^3.5` rather than `^3` because the adapter uses Vue's built-in
+`useId()`, which landed in 3.5. Ids must come from the framework — see the
+[server rendering guide](/guides/ssr/) for why a library-generated id is a
+hydration bug waiting to happen.
+
+## Install the stylesheet (optional)
+
+kanso-ui is headless. Without any CSS you get working, accessible, entirely
+unstyled components, and you write the appearance yourself against the
+`data-part` / `data-state` attributes.
+
+If you want the Kanso look, or just a sensible starting point:
+
+<Tabs syncKey="pkg">
+  <TabItem label="npm">
+    ```bash
+    npm install @caioalfonso/kanso-styles
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add @caioalfonso/kanso-styles
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add @caioalfonso/kanso-styles
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```bash
+    bun add @caioalfonso/kanso-styles
+    ```
+  </TabItem>
+</Tabs>
+
+## Import what you use
+
+Both adapters expose one entry point per component, and so does the stylesheet.
+Importing from `…/switch` pulls in the Switch and nothing else — not Tabs, not
+Dialog, not the components you have never touched.
+
+```ts
+import { Switch } from '@caioalfonso/kanso-react/switch';
+
+import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/base';
+import '@caioalfonso/kanso-styles/switch';
+```
+
+:::caution[`tokens` and `base` are not optional if you use the stylesheet]
+`tokens` defines every custom property the component sheets read — without it
+they resolve to nothing. `base` carries the `:focus-visible` ring, the
+reduced-motion opt-out, and the clipping that keeps a form component's hidden
+mirror input out of sight. Import a component sheet on its own and you get a
+control with no visible focus indicator and a stray checkbox on the page.
+
+Both are tiny, and both are imported once for the whole app, not per component.
+:::
+
+### Entry points
+
+The same subpath works across all three packages. `/switch` is the Switch in the
+React adapter, in the Vue adapter, and in the stylesheet.
+
+| Component | Subpath |
+|---|---|
+| [Switch](/components/switch/) | `/switch` |
+| [Tabs](/components/tabs/) | `/tabs` |
+| [Dialog](/components/dialog/) | `/dialog` |
+| [Menu](/components/menu/) | `/menu` |
+| [Field](/components/field/) | `/field` |
+| [Button](/components/button/) | `/button` |
+| [Card](/components/card/) | `/card` |
+
+Most subpaths export a single assembled component. `/field` exports three —
+`Field`, `Input` and `Textarea` — and the compound components also export their
+individual parts, `TabsRoot`, `TabsList`, `TabsTrigger`, `TabsContent` and so
+on, for when you need to control the markup rather than accept the default. Each
+component page lists its own.
+
+### Everything at once
+
+There is a root entry on every package, if you would rather not think about it:
+
+```ts
+import { Switch, Tabs, Dialog } from '@caioalfonso/kanso-react';
+import '@caioalfonso/kanso-styles';
+```
+
+Reach for this in a prototype. In an application, prefer the per-component
+subpaths — the root CSS import is every component's styles whether or not you
+render them, and CSS does not tree-shake.
+
+## TypeScript
+
+Subpath imports resolve only under a modern module resolution mode. If
+`@caioalfonso/kanso-react/switch` reports as missing while
+`@caioalfonso/kanso-react` resolves fine, this is why:
+
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler"
+  }
+}
+```
+
+`"node16"` and `"nodenext"` work too. The legacy `"node"` mode predates the
+`exports` field and cannot see subpaths at all.
+
+## The core package
+
+```ts
+import { connect, switchAnatomy } from '@caioalfonso/kanso-core/switch';
+```
+
+`@caioalfonso/kanso-core` holds the behaviour — state machine, keyboard, ARIA,
+focus management — as plain TypeScript with zero dependencies and no import of
+any framework. Both adapters depend on it, so it is already installed.
+
+Install it directly only if you are writing a third adapter, or reading the
+state machine to understand what a component does. Application code imports from
+an adapter. See the [architecture guide](/guides/architecture/) for what the
+core actually hands back.

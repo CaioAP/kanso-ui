@@ -28,8 +28,16 @@ stylesheet — `@caioalfonso/kanso-styles` — is opt-in:
 
 ```ts
 import '@caioalfonso/kanso-styles'          // everything
-import '@caioalfonso/kanso-styles/switch'   // one component
+
+import '@caioalfonso/kanso-styles/tokens'   // or, piece by piece — tokens and
+import '@caioalfonso/kanso-styles/base'     // base are required, not optional
+import '@caioalfonso/kanso-styles/switch'   // extras, then one component each
 ```
+
+`tokens` holds the custom properties every component sheet reads; `base` holds
+the focus ring, the reduced-motion opt-out and the `hidden-input` clipping.
+Component sheets do not `@import` them — a component sheet alone is a control
+with no focus indicator and a visible mirror input.
 
 The stylesheet targets **only** the data attributes core emits. No class names, ever.
 

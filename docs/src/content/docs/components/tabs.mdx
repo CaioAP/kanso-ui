@@ -26,29 +26,19 @@ The two panels above are different libraries rendering the same core. Every arro
 key, every ARIA attribute and every state transition comes from the same
 `@caioalfonso/kanso-core` code; only the rendering differs.
 
-## Installation
-
-```bash
-# React
-npm i @caioalfonso/kanso-react
-# Vue
-npm i @caioalfonso/kanso-vue
-```
-
-Import from the component's own entry point so the rest of the library is never
-bundled:
+## Import
 
 ```ts
 import { Tabs } from '@caioalfonso/kanso-react/tabs';
-```
 
-The stylesheet is optional. Without it you get a fully functional, entirely
-unstyled tablist:
-
-```ts
 import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/base';
 import '@caioalfonso/kanso-styles/tabs';
 ```
+
+The stylesheet is optional — without it you get a fully functional, entirely
+unstyled tablist. See [Installation](/getting-started/installation/) for package
+setup, the Vue entry points, and why `tokens` and `base` come along.
 
 ## Anatomy
 
