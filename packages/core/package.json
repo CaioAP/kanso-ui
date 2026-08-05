@@ -1,7 +1,7 @@
 {
   "name": "@caioalfonso/kanso-core",
-  "version": "0.0.1",
-  "description": "Framework-agnostic behaviour core for kanso-ui \u2014 state, keyboard, ARIA and focus, with zero dependencies.",
+  "version": "0.0.2",
+  "description": "Framework-agnostic behaviour core for kanso-ui — state, keyboard, ARIA and focus, with zero dependencies.",
   "license": "MIT",
   "author": "Caio Alfonso",
   "homepage": "https://github.com/CaioAP/kanso-ui#readme",
