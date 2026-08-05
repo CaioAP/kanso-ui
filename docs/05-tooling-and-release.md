@@ -226,6 +226,35 @@ permissions:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+### Step 2 needs a repository setting that is off by default
+
+`permissions: pull-requests: write` in `release.yml` is necessary and **not
+sufficient**. A separate repo-level gate sits above the workflow's own
+permissions block:
+
+> Settings → Actions → General → Workflow permissions →
+> **Allow GitHub Actions to create and approve pull requests**
+
+It is off by default on new repositories. With it off, the job pushes
+`changeset-release/main` successfully and then fails on the last line:
+
+```
+Error: GitHub Actions is not permitted to create or approve pull requests.
+```
+
+Which is a confusing failure, because everything up to the PR is green and the
+branch really is there with the right commit on it. `gh api
+repos/OWNER/REPO/actions/permissions/workflow` reports the true state; enable it
+with the same path under `-X PUT` and `-F can_approve_pull_request_reviews=true`.
+
+Leave `default_workflow_permissions` at `read`. `release.yml` grants itself
+`contents`, `pull-requests` and `id-token` explicitly, which is the pattern to
+keep — a read-only default means a workflow that forgets to ask gets nothing.
+
+Note the blast radius is narrow: only PR *creation* is gated. `changeset
+publish` and OIDC are unaffected, so a release can always be completed by
+opening the Version Packages PR by hand from the pushed branch.
+
 ### The publish trap, found the hard way
 
 **Step 2 above is not conditional on a changeset existing.** The action runs its
