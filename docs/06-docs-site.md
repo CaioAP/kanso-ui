@@ -50,7 +50,7 @@ planning, `docs/src/**` is the site. Do not publish the planning docs to the sit
 ```
 Getting started
   ├─ Introduction        what headless means, why core+adapters, the tradeoff
-  ├─ Installation        Vue and React, in tabs
+  ├─ Installation        npm/pnpm/yarn/bun in tabs · per-component entry points
   ├─ Quick start         a working Switch in under a minute
   └─ Styling             headless usage · optional stylesheet · theming with tokens
 
@@ -83,7 +83,10 @@ Every component page has the same sections, in this order:
 1. **One-line description** and when to use it — plus when *not* to
    (e.g. Switch vs Checkbox).
 2. **Live example** — the `ComponentPreview` (below).
-3. **Installation** — the per-component import.
+3. **Import** — the per-component entry points and nothing else. Package
+   installation is *not* repeated here; it lives once on the Installation page,
+   which every component page links to. Seven copies of `npm i` is seven places
+   for the instructions to drift.
 4. **Anatomy** — the parts, from `anatomy.ts`, with a labelled diagram.
 5. **Props table** — generated where possible, hand-written where not.
 6. **Keyboard table** — copied verbatim from `docs/03`. Non-negotiable on every

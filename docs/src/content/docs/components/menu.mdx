@@ -28,30 +28,20 @@ The two panels above are different libraries rendering the same core. Every
 arrow key, the typeahead buffer, the dismissal rules and every ARIA attribute
 come from the same `@caioalfonso/kanso-core` code; only the rendering differs.
 
-## Installation
-
-```bash
-# React
-npm i @caioalfonso/kanso-react
-# Vue
-npm i @caioalfonso/kanso-vue
-```
-
-Import from the component's own entry point so the rest of the library is never
-bundled:
+## Import
 
 ```ts
 import { Menu } from '@caioalfonso/kanso-react/menu';
-```
 
-The stylesheet is optional — and for this component it also carries the
-positioning, so an unstyled menu appears in the document flow rather than over
-the page:
-
-```ts
 import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/base';
 import '@caioalfonso/kanso-styles/menu';
 ```
+
+The stylesheet is optional — but for this component it also carries the
+positioning, so an unstyled menu appears in the document flow rather than over
+the page. See [Installation](/getting-started/installation/) for package setup,
+the Vue entry points, and why `tokens` and `base` come along.
 
 ## Anatomy
 

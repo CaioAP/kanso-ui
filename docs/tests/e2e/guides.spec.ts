@@ -20,6 +20,7 @@ import { expect, type Page, test } from '@playwright/test';
 const pages = [
   '/',
   '/getting-started/introduction/',
+  '/getting-started/installation/',
   '/guides/accessibility/',
   '/guides/architecture/',
   '/guides/theming/',
@@ -102,6 +103,30 @@ for (const path of codePages) {
   });
 }
 
+test('code blocks inside MDX components are focusable too', async ({ page }) => {
+  // The measurement above only ever sees the *visible* tab panel: a hidden one
+  // reports zero scroll width, so it is never scrollable and never flagged.
+  // Seven of this page's twelve code blocks sit inside `<Tabs>`, and six of
+  // those are hidden at any moment — so the usual check covers barely half the
+  // page and would keep passing while the rest went unreachable.
+  //
+  // The rehype plugin does reach fences nested in an MDX component today; this
+  // asserts the attribute directly, regardless of visibility or viewport, so
+  // that stays true if its tree walk is ever narrowed.
+  await page.goto('/getting-started/installation/');
+
+  const blocks = await page.evaluate(() =>
+    [...document.querySelectorAll('.sl-markdown-content pre')].map((pre) => ({
+      tabindex: pre.getAttribute('tabindex'),
+      text: (pre.textContent ?? '').slice(0, 40),
+    })),
+  );
+
+  // A page that rendered no code blocks would pass the filter below vacuously.
+  expect(blocks.length).toBeGreaterThan(8);
+  expect(blocks.filter((block) => block.tabindex !== '0')).toEqual([]);
+});
+
 test.describe('guide navigation', () => {
   test('every guide is reachable from the sidebar', async ({ page }) => {
     await page.goto('/guides/accessibility/');
@@ -111,6 +136,35 @@ test.describe('guide navigation', () => {
     const sidebar = page.locator('.sidebar-content');
     for (const label of ['Accessibility', 'Architecture', 'Theming', 'Server rendering']) {
       await expect(sidebar.getByRole('link', { name: label, exact: true })).toHaveCount(1);
+    }
+  });
+
+  test('Installation is reachable from the sidebar', async ({ page }) => {
+    await page.goto('/guides/accessibility/');
+
+    const sidebar = page.locator('.sidebar-content');
+    for (const label of ['Introduction', 'Installation']) {
+      await expect(sidebar.getByRole('link', { name: label, exact: true })).toHaveCount(1);
+    }
+  });
+
+  test('every component page links to Installation', async ({ page }) => {
+    // The install instructions live in one place now, and seven pages point at
+    // it. A pointer repeated seven times is a pointer that rots six times
+    // unnoticed — so assert the link exists and actually lands, on every page
+    // rather than a sample.
+    const components = ['switch', 'tabs', 'dialog', 'menu', 'field', 'button', 'card'] as const;
+
+    for (const component of components) {
+      await page.goto(`/components/${component}/`);
+
+      const link = page
+        .locator('.sl-markdown-content')
+        .getByRole('link', { name: 'Installation', exact: true });
+      await expect(link, `Installation link on /components/${component}/`).toHaveCount(1);
+
+      await link.click();
+      await expect(page).toHaveURL(/\/getting-started\/installation\/$/);
     }
   });
 

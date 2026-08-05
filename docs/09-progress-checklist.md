@@ -994,6 +994,54 @@ The SSR pair is the one worth noting: it means the server HTML changes shape
 with the field's state, which is exactly what decision 1 requires and what a
 render-time-only fix would have quietly broken.
 
+### Defect 7 — the install instructions were an a11y defect
+
+Reported as a docs-shape complaint: seven component pages each carried a
+near-identical `## Installation` section. Five repeated the same `npm i` block;
+Button and Card had a truncated version that omitted it entirely, so the
+duplication was not even consistent. Consolidated into one page,
+`getting-started/installation`, with npm/pnpm/yarn/bun in a synced Starlight
+`<Tabs>` block and a per-component entry-point table. Component pages keep a
+slim `## Import` — the entry points, which are the thing you actually copy while
+reading that page — plus a link.
+
+**What the consolidation exposed is the real find.** Every one of those seven
+sections said:
+
+```ts
+import '@caioalfonso/kanso-styles/tokens';
+import '@caioalfonso/kanso-styles/switch';
+```
+
+`base.css` holds the `:focus-visible` ring, the reduced-motion opt-out, and the
+clipping that keeps `hidden-input` out of sight. No component sheet `@import`s
+it. So the documented install produced a control with **no visible focus
+indicator** — WCAG 2.4.7, in an accessibility library, in the instructions
+themselves — and a stray visible checkbox on any form component with `name`.
+
+It survived because the docs site imports the barrel (`astro.config.mjs`
+`customCss: ['@caioalfonso/kanso-styles']` → `index.css`, which does `@import
+'./base.css'`). Every preview on the site got `base` for free, so the previews
+proved nothing about the instructions above them. Fixed in all seven pages, the
+theming guide, `docs/02` §2, and `packages/styles/README.md` — the last of those
+is published, hence the changeset on a docs-shaped change.
+
+Also corrected here: `getting-started/introduction` still carried a
+`:::caution[Not on npm yet]`, three commits after `0.0.1` shipped.
+
+**One hypothesis tested and discarded**, recorded because the reasoning was
+sound and the result was not: fences nested in `<Tabs>`/`<TabItem>` looked like
+they would sit under an `mdxJsxFlowElement`, which `rehypeFocusableCodeBlocks`
+skips (`if (child.type !== 'element') continue`). Widening the walk was written,
+then measured against a build with the *original* walk — all 12 blocks already
+carried `tabindex="0"`. The plugin was reverted unchanged. The test written for
+it was kept, since the existing 360px measurement only ever sees the visible tab
+panel: 7 of this page's 12 blocks are inside `<Tabs>` and 6 are hidden at any
+moment, reporting zero scroll width and never being flagged.
+
+Suite: **213 browser tests**, +6. `pnpm lint`, `pnpm typecheck` and
+`pnpm --filter docs build` clean.
+
 ---
 
 ## Open questions / decisions pending
