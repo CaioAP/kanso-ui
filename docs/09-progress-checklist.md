@@ -37,7 +37,7 @@ silent, each passed the tests that existed at the time, and each was caught by
 adding a *different kind* of test rather than more of the same kind.
 
 **Repo:** `/home/caio/Projects/kanso-ui` · **npm scope:** `@caioalfonso` (confirmed free)
-**Docs site:** https://kanso-ui.pages.dev · **GitHub:** `github.com/CaioAP/kanso-ui`
+**Docs site:** https://kansoui.caioalfonso.dev · **GitHub:** `github.com/CaioAP/kanso-ui`
 
 **Toolchain as installed:** Node 24.14.0 · pnpm 10.30.3 · TypeScript 5.9.3 ·
 Vitest 3.2.7 · Biome 2.5.6 · tsup 8.5.1 · Astro 7.1.5 · Starlight 0.41.5
@@ -1148,7 +1148,23 @@ quietly ticked — see `docs/00` §6 and `docs/08` §4.
 - [x] ~~All four packages ship `files: ["dist"]`, so the npm page would be
       blank.~~ Each package now has its own README and LICENSE; npm includes
       both regardless of `files`.
-- [ ] Docs site domain — `kanso-ui.pages.dev` by default, custom domain undecided
+- [x] ~~Docs site domain undecided.~~ **Resolved 2026-08-06:**
+      `kansoui.caioalfonso.dev`, a subdomain of the personal domain, registered
+      through Cloudflare Registrar so the zone already sits in the same account
+      as the Pages project.
+
+      **Deliberately temporary.** A library whose docs live under the author's
+      personal domain reads as a personal project, which is the impression
+      `docs/00` §2 exists to avoid. A dedicated domain is the intended end
+      state; the subdomain is what gets the site off `*.pages.dev` today at no
+      extra cost. When the dedicated domain arrives, the four published package
+      READMEs move again and that costs another release, so expect the churn
+      rather than being surprised by it.
+
+      The `*.pages.dev` URL keeps serving after a custom domain is attached, so
+      nothing breaks during the switch. It does mean two hosts serve the same
+      content, which is why `site:` in `docs/astro.config.mjs` matters: it is
+      what emits the canonical URLs and the sitemap.
 - [x] ~~Whether `ComponentPreview` reflects live knob state in the shown
       source.~~ It shows the real example file, read at build time with `?raw`
       so it cannot drift. Reflecting knob state would mean generating source,

@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Documentation
-    url: https://kanso-ui.pages.dev
+    url: https://kansoui.caioalfonso.dev
     about: Component pages, keyboard maps, and the accessibility, theming and server-rendering guides.
   - name: Contributing
     url: https://github.com/CaioAP/kanso-ui/blob/main/CONTRIBUTING.md

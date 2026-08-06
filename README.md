@@ -9,7 +9,7 @@ framework-agnostic core.
 Tabs, Dialog, Menu, Field, Button and Card are each complete in Vue and React
 from one shared core — 894 unit tests and 207 browser tests, with every
 component server-rendered in both frameworks under test. Read the
-[documentation](https://kanso-ui.pages.dev), or
+[documentation](https://kansoui.caioalfonso.dev), or
 [`docs/09-progress-checklist.md`](docs/09-progress-checklist.md) for the
 current state in detail.
 

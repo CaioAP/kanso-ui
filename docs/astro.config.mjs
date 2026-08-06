@@ -8,7 +8,7 @@ import { rehypeFocusableCodeBlocks } from './src/plugins/focusable-code-blocks.m
 // Cloudflare Pages uploads dist/, and the Workers flow would rebuild for a
 // runtime this site does not target. See docs/05 §10.
 export default defineConfig({
-  site: 'https://kanso-ui.pages.dev',
+  site: 'https://kansoui.caioalfonso.dev',
   integrations: [
     starlight({
       title: 'kanso-ui',

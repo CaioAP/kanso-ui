@@ -39,6 +39,6 @@ implementation to fix.
 
 ## Documentation
 
-<https://kanso-ui.pages.dev>
+<https://kansoui.caioalfonso.dev>
 
 ESM only. Requires Vue 3.5+ (for `useId`), which is a peer dependency. MIT licensed.
