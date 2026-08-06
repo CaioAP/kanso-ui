@@ -3,21 +3,22 @@
 Living status doc. **Update it as items land** — it is the fastest way for a new
 session to learn where things stand.
 
-**Status: Phases 5, 5.1, 5.2 and 6 done — all seven v1 components exist, the
-site is themed and documented, and `0.0.1` is on npm.** Switch, Tabs, Dialog, Menu,
-Field (with Input and Textarea), Button and Card are in core, Vue and React,
-with 894 unit tests and 207 browser tests green, docs pages, four guides, and
-seven embed routes live. Lighthouse is 100 across all four categories.
+**Status: `1.0.0` is on npm and every success criterion in `docs/00` §6 is met.**
+All seven v1 components — Switch, Tabs, Dialog, Menu, Field (with Input and
+Textarea), Button and Card — exist in core, Vue and React, with 894 unit tests
+and 213 browser tests green, docs pages, four guides, and seven embed routes
+live. Lighthouse is 100 across all four categories. The docs site is themed and
+documented, and the portfolio links to it as a published `project` document.
 
-The component list from `docs/00` is complete. What remains before `1.0.0` is
-Phase 6 (API review, bundle size, the semver promise).
+**The only open item in Phase 6 is the blog post.** Everything else is done.
 
-**`0.0.1` is published.** All four `@caioalfonso/kanso-*` packages went to npm on
-2026-08-04, by hand from a local authenticated session — the sequence `docs/05`
-§9 calls for, so that trusted publishing can be configured against packages that
-exist. The `RELEASE_ENABLED` guard has since been removed and publishing moved to
-OIDC (see *Open questions* below), but **the release workflow has still never
-completed a publish** — that is the next thing to close, not a leftover.
+**Publishing history.** `0.0.1` went to npm on 2026-08-04, by hand from a local
+authenticated session — the sequence `docs/05` §9 calls for, so trusted
+publishing could be configured against packages that exist. `0.0.2` and then
+`1.0.0` followed on 2026-08-06, **both published by the release workflow over
+OIDC with no npm token in CI**, which closes the gap this section used to flag.
+`1.0.0` is a version-number change rather than a feature release: the API review
+settled the surface, and `0.0.x` was claiming otherwise.
 
 The next release is `0.0.2`, not `0.0.1`: eight changesets are pending, and the
 first CI release consumes all of them.
@@ -209,7 +210,8 @@ are identical, so the duplication cannot silently diverge.
 - [x] Changeset written
 - [x] **Published `0.0.1`** — 2026-08-04, by hand from a local authenticated
       session rather than through CI, per `docs/05` §9. `RELEASE_ENABLED` was
-      never set; the release workflow has still never run end to end.
+      never set. *(The workflow has since published `0.0.2` and `1.0.0` on its
+      own — see the Phase 6 close-out.)*
 - [x] External install verified from a clean directory — first against real
       `pnpm pack` tarballs, then **against the registry itself** once `0.0.1`
       was out. The registry round-trip, previously the one unproven thing, now
@@ -765,8 +767,11 @@ stale.
 - [x] Bundle size per entry; tree-shaking verified
 - [x] `CONTRIBUTING.md`, issue/PR templates
 - [x] README polished for the npm landing page
-- [ ] **`1.0.0` published**
-- [ ] Portfolio project document updated with the real outcome line
+- [x] **`1.0.0` published** — 2026-08-06, all four packages, over OIDC with no
+      npm token in CI. `0.0.2` shipped first and carries the stylesheet README
+      fix; `1.0.0` is a version-number change, not a feature release.
+- [x] Portfolio project document published, with the real outcome line and a
+      cover. `/work/` is no longer empty.
 - [ ] Blog post written
 
 ### What the API review changed
@@ -1044,6 +1049,65 @@ Suite: **213 browser tests**, +6. `pnpm lint`, `pnpm typecheck` and
 
 ---
 
+## Phase 6 close-out — `1.0.0`, and what shipping it exposed
+
+`0.0.2` and `1.0.0` both published on 2026-08-06 by the release workflow, over
+OIDC, with no npm credential in CI. That is the first time the pipeline has
+completed a publish end to end; every prior version went out by hand.
+
+`1.0.0` carries no behaviour change. The changeset says so, and says what the
+number now buys: the `data-part` / `data-state` attributes, the `--kanso-*`
+custom properties, and the per-component entry points are covered by semver, so
+breaking any of the three costs a major. `docs/00` §7 said "pre-`1.0.0` while the
+API settles" and the API review settled it — staying on `0.0.x` had become the
+inaccurate option.
+
+### The release job had never opened its own PR, and the error was misleading
+
+Every merge to `main` failed on the last line of the release job:
+
+```
+Error: GitHub Actions is not permitted to create or approve pull requests.
+```
+
+Not a workflow bug. `release.yml` already declared `pull-requests: write`, and
+that grant was real — the job pushed `changeset-release/main` successfully every
+time. A **repository-level** gate sits above the workflow's own permissions
+block: *Settings → Actions → General → Allow GitHub Actions to create and approve
+pull requests*, off by default. Now enabled; recorded in `docs/05` §8 because the
+setting lives nowhere in the repo and a fork hits the identical wall with nothing
+to grep for.
+
+What made it confusing is that everything up to the PR was green and the branch
+really was there with the right commit on it, so it read as a changesets problem.
+Only PR *creation* was ever gated — `changeset publish` and OIDC were unaffected,
+so a release could always have been finished by opening the PR by hand.
+
+### The portfolio was publishing unpublished drafts
+
+Found from this side, fixed in the sibling repo. Creating this project's own
+Sanity `project` document as a **draft** and building the portfolio produced
+`dist/work/kanso-ui/index.html` containing the draft's body text, and listed it
+on `/work`. `@sanity/client` 7 answers from the `raw` perspective when a token is
+supplied and no `perspective` is set, and `raw` includes `drafts.*`; the queries
+filter on `_type` alone, so a draft came back indistinguishable from a published
+document. Fixed with `perspective: 'published'`. It affected every content type,
+not just projects — any half-written post was one webhook from being public.
+
+Worth recording here because of *how* it surfaced: not from a test, but from
+doing the ordinary thing (write a draft, build) and reading the output rather
+than assuming it. Same shape as Defect 7 above.
+
+### The embedded demo was demoted, not delivered
+
+`docs/00` §6 asked for the portfolio link to come "with a live embedded demo".
+The embed was built and merged, then the requirement was dropped: the project
+document links to the docs site, npm and GitHub, and each shows the components
+better than an iframe of them does. The spec was amended rather than the box
+quietly ticked — see `docs/00` §6 and `docs/08` §4.
+
+---
+
 ## Open questions / decisions pending
 - [x] ~~Move CI publishing to npm **trusted publishing** (OIDC).~~ **Done
       2026-08-04, in the order the ordering constraint required:** `0.0.1`
@@ -1065,11 +1129,13 @@ Suite: **213 browser tests**, +6. `pnpm lint`, `pnpm typecheck` and
       ([pnpm/pnpm#11513](https://github.com/pnpm/pnpm/issues/11513)). Check that
       issue before bumping pnpm's major. The failure mode is safe either way: a
       broken exchange fails the publish rather than publishing the wrong thing.
-- [ ] **The release pipeline has still never run end to end.** Every step above
-      is configured but unexercised — the first merge to `main` with pending
-      changesets will open a Version Packages PR, and merging *that* is the run
-      that finally proves it. Seven changesets are pending, so the first CI
-      release is `0.0.2`. Watch that run.
+- [x] ~~**The release pipeline has still never run end to end.**~~ **It has now,
+      twice** — `0.0.2` and then `1.0.0` on 2026-08-06, both from CI over OIDC
+      with no npm credential present. The prediction above was right about the
+      version: nine pending changesets made the first CI release `0.0.2`.
+      It was wrong about it being unblocked — the job could push
+      `changeset-release/main` but not open the PR, because of a repository
+      setting no file in this repo controls. See the Phase 6 close-out.
 - [x] ~~`docs/01` §8 and `docs/03` §1 disagree on Switch's hidden input.~~
       Resolved at the top of Phase 1: `docs/03` won, `docs/01` §8 was amended,
       and `hidden-input` is now a named part. §8 also carried two other defects,

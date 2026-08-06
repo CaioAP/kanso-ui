@@ -54,6 +54,19 @@ across the docs site."*
 
 ## 4. The playground entry
 
+> **Built, and demoted.** `KansoEmbed.vue` and its registry entry shipped in the
+> portfolio repo on 2026-08-06. But the embed is **not** a requirement for this
+> integration to be complete, and `docs/00` §6 was amended to say so. The project
+> document links to the docs site, npm and GitHub; anyone evaluating the work
+> follows one of those, and each shows the components better than an iframe does.
+> Keep the embed while it costs nothing. Do not treat it as load-bearing, and do
+> not rebuild it if it is ever removed.
+>
+> One thing it did surface, which was worth the trip: the portfolio was building
+> from Sanity's `raw` perspective, so unpublished drafts were being rendered into
+> production. Found by creating this project's own draft and seeing it in `dist`.
+> Fixed with `perspective: 'published'`.
+
 The portfolio's playground is open/closed by design: one folder plus one registry
 entry in `src/features/playground/_registry.ts`.
 
