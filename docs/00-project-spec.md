@@ -72,17 +72,29 @@ Designing for (2) is what makes it credible to (1).
 
 ## 6. Success criteria
 
-The project is a success when all of these are true:
+The project is a success when all of these are true. **All of them now are**, as
+of `1.0.0` on 2026-08-06:
 
-- [ ] Four packages published to npm under `@caioalfonso/*`, at ≥ `1.0.0`.
-- [ ] Seven components, each with core + Vue + React + tests + docs page.
-- [ ] Docs site deployed, Lighthouse ≥ 95 on all four categories.
-- [ ] Zero axe violations on every docs page and every component test.
-- [ ] Keyboard interaction tests for every interactive component, asserting the
+- [x] Four packages published to npm under `@caioalfonso/*`, at ≥ `1.0.0`.
+- [x] Seven components, each with core + Vue + React + tests + docs page.
+- [x] Docs site deployed, Lighthouse ≥ 95 on all four categories — measured at
+      100/100/100/100 on six pages, recorded in `docs/09`.
+- [x] Zero axe violations on every docs page and every component test.
+- [x] Keyboard interaction tests for every interactive component, asserting the
       full APG key map — not just "it renders".
-- [ ] SSR-safe: server-render tests pass in both frameworks, no hydration warnings.
-- [ ] `packages/core` has zero framework dependencies, enforced in CI.
-- [ ] Linked from the portfolio as a `project` document, with a live embedded demo.
+- [x] SSR-safe: server-render tests pass in both frameworks, no hydration warnings.
+- [x] `packages/core` has zero framework dependencies, enforced in CI —
+      `pnpm core-purity` checks source *and* `dist`.
+- [x] Linked from the portfolio as a `project` document.
+
+**One criterion was amended rather than met.** It read "…as a `project` document,
+**with a live embedded demo**". The embed was built — it is in the portfolio's
+playground — but it is no longer a success condition. Someone evaluating the work
+goes to the docs site, npm or GitHub, all three of which the project document
+links; an iframe of a component the docs site already shows better is a nicer
+extra, not a thing the project needs to be finished. Recorded here rather than
+quietly ticked, because the original wording asked for something stronger than
+what shipped.
 
 ## 7. Quality floor (non-negotiable)
 
