@@ -53,7 +53,7 @@ Rails only. Nothing user-visible.
 - [x] `LICENSE` (MIT), `README.md`, `.gitignore`, `.nvmrc`
 - [x] Starlight site scaffolded in `docs/`, both Vue and React integrations
       registered, both islands verified to build on one page
-- [x] Docs site deployed to Cloudflare Pages — https://kanso-ui.pages.dev
+- [x] Docs site deployed to Cloudflare Pages — https://kansoui.caioalfonso.dev
 - [x] **Verify the token contrast ratios in `docs/02` §3** and correct the values.
       Measured numbers recorded in `docs/09`; `pnpm contrast` is now a CI gate.
 - [x] `core/src/types.ts` — `PropTypes`, `NormalizeProps`, `Dict`

@@ -34,6 +34,6 @@ Two rules this package holds to, and CI enforces:
 
 ## Documentation
 
-<https://kanso-ui.pages.dev>
+<https://kansoui.caioalfonso.dev>
 
 ESM only. MIT licensed.

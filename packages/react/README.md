@@ -35,6 +35,6 @@ implementation to fix.
 
 ## Documentation
 
-<https://kanso-ui.pages.dev>
+<https://kansoui.caioalfonso.dev>
 
 ESM only. `react` and `react-dom` are peer dependencies. MIT licensed.

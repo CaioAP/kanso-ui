@@ -59,6 +59,6 @@ your own CSS straightforward:
 
 ## Documentation
 
-<https://kanso-ui.pages.dev>
+<https://kansoui.caioalfonso.dev>
 
 MIT licensed.
